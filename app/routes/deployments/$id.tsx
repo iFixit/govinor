@@ -15,6 +15,7 @@ import { classNames } from "~/helpers/ui-helpers";
 import { PushJob, PushJobPayload } from "~/jobs/push-job.server";
 import { useSWRData } from "~/lib/hooks";
 import { JobProgressLogger, ProgressLog } from "~/lib/logger";
+import { Deployment, getDeploymentByBranch } from "~/models/deployment.server";
 
 dayjs.extend(calendar);
 
@@ -33,6 +34,7 @@ interface JobData {
 }
 
 interface LoaderData {
+  deployment: Deployment;
   job: JobData;
 }
 
@@ -46,7 +48,12 @@ export let loader: LoaderFunction = async ({ params }): Promise<LoaderData> => {
     ? rawJob.progress
     : undefined;
 
+  const deployment = await getDeploymentByBranch(rawJob.data.branch);
+
+  invariant(deployment, "Deployment not found");
+
   return {
+    deployment,
     job: {
       id: params.id,
       name: rawJob.name,
@@ -68,12 +75,10 @@ export let loader: LoaderFunction = async ({ params }): Promise<LoaderData> => {
 };
 
 export default function Job() {
-  let { job } = useSWRData<LoaderData>();
+  let { job, deployment } = useSWRData<LoaderData>();
   const timestamp = dayjs(job.timestamp);
   const processedOn = dayjs(job.processedOn);
   const finishedOn = dayjs(job.finishedOn);
-
-  const deploymentUrl = `https://${job.data.branch}.deploy.ink/admin`;
 
   return (
     <>
@@ -125,7 +130,7 @@ export default function Job() {
               {finishedOn.isValid() && job.status === "completed" && (
                 <span className="hidden sm:block ml-3">
                   <a
-                    href={deploymentUrl}
+                    href={`${deployment.url}/admin`}
                     className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                     target="_blank"
                   >
@@ -161,7 +166,7 @@ export default function Job() {
                     <Menu.Item>
                       {({ active }) => (
                         <a
-                          href={deploymentUrl}
+                          href={`${deployment.url}/admin`}
                           target="_blank"
                           className={classNames(
                             active ? "bg-gray-100" : "",

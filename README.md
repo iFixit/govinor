@@ -67,3 +67,10 @@ To install Node.js, run the following command:
 ```sh
 nvm install 14
 ```
+
+### Install govinor instance
+
+To install govinor, you need to SSH into your EC2 instance and run the following commands:
+
+1. Create deployment folder: `mkdir -p ~/deployments`
+2. Clone this repo

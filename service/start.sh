@@ -1,7 +1,7 @@
 #!/bin/bash
 source ${HOME}/.bashrc
 
-cd ${HOME}/deploy.ink/
+cd ${HOME}/govinor/
 
 docker compose up -d
 export NODE_ENV=production

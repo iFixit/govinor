@@ -21,7 +21,7 @@ export let links: LinksFunction = () => {
   return [{ rel: "stylesheet", href: styles }];
 };
 export const meta: MetaFunction = () => {
-  return { title: "Deploy.ink" };
+  return { title: "Govinor" };
 };
 
 interface LoaderData {}

@@ -1,11 +1,11 @@
 [Unit]
-Description=Github webhook
+Description=Govinor platform
 After=network.target
 
 [Service]
 Type=simple
 User=ubuntu
-ExecStart=/home/ubuntu/deploy.ink/service/start.sh
+ExecStart=/home/ubuntu/govinor/service/start.sh
 Restart=on-failure
 
 [Install]

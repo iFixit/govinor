@@ -6,8 +6,9 @@ import { getSystemStats } from "~/models/system.server";
 
 export let meta: MetaFunction = () => {
   return {
-    title: "Deploy",
-    description: "Welcome to deploy.ink!",
+    title: "Govinor",
+    description:
+      "Govinor is a platform to deploy and preview docker containers.",
   };
 };
 
