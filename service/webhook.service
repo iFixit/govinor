@@ -1,0 +1,12 @@
+[Unit]
+Description=Github webhook
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+ExecStart=/home/ubuntu/deploy.ink/service/start.sh
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

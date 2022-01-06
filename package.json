@@ -1,0 +1,56 @@
+{
+  "private": true,
+  "name": "remix-app-template",
+  "description": "",
+  "license": "",
+  "scripts": {
+    "build": "npm run build:css && remix build",
+    "build:css": "tailwindcss -o ./app/styles.css",
+    "dev": "concurrently -p \"[{name}]\" -n \"remix,workers,tailwind,redis\" -c \"blue.bold,magenta.bold,green.bold,red.bold\" \"npm:dev:remix\" \"npm:dev:workers\" \"npm:dev:tailwind\" \"npm:dev:redis\"",
+    "dev:remix": "node -r dotenv/config node_modules/.bin/remix dev",
+    "dev:tailwind": "tailwindcss -o ./app/styles.css --watch",
+    "dev:workers": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register workers/index.ts",
+    "dev:redis": "docker compose up",
+    "postinstall": "remix setup node",
+    "start": "npm run start:remix & npm run start:workers",
+    "start:remix": "node -r dotenv/config node_modules/.bin/remix-serve build",
+    "start:workers": "cross-env NODE_ENV=production ts-node --transpile-only -r tsconfig-paths/register workers/index.ts",
+    "deploy": "./deploy.sh"
+  },
+  "dependencies": {
+    "@headlessui/react": "1.4.2",
+    "@heroicons/react": "1.0.5",
+    "@remix-run/react": "1.1.1",
+    "@remix-run/serve": "1.1.1",
+    "bullmq": "1.63.0",
+    "dayjs": "1.10.7",
+    "dotenv": "10.0.0",
+    "faker": "5.5.3",
+    "get-port": "5.1.1",
+    "ioredis": "4.28.2",
+    "node-fetch": "2.6.6",
+    "react": "17.0.2",
+    "react-dom": "17.0.2",
+    "remix": "1.1.1",
+    "tiny-invariant": "1.2.0"
+  },
+  "devDependencies": {
+    "@remix-run/dev": "1.1.1",
+    "@types/faker": "5.5.9",
+    "@types/ioredis": "4.28.5",
+    "@types/react": "17.0.24",
+    "@types/react-dom": "17.0.9",
+    "concurrently": "6.4.0",
+    "cross-env": "7.0.3",
+    "tailwindcss": "3.0.2",
+    "ts-node": "10.4.0",
+    "ts-node-dev": "1.1.8",
+    "tsconfig-paths": "3.12.0",
+    "typescript": "4.1.2",
+    "wait-on": "6.0.0"
+  },
+  "engines": {
+    "node": ">=14"
+  },
+  "sideEffects": false
+}
