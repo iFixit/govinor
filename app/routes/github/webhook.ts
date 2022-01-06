@@ -1,3 +1,4 @@
+import { GITHUB_WEBHOOK_SECRET } from "~/../config/env";
 import crypto from "crypto";
 import { ActionFunction, json } from "remix";
 import { DeleteDeploymentJob } from "~/jobs/delete-deployment-job.server";
@@ -6,10 +7,6 @@ import { PushJob } from "~/jobs/push-job.server";
 export const action: ActionFunction = async ({ request }) => {
   if (request.method !== "POST") {
     return json({ message: "Method not allowed" }, 405);
-  }
-  const GITHUB_WEBHOOK_SECRET = process.env.GITHUB_WEBHOOK_SECRET;
-  if (!GITHUB_WEBHOOK_SECRET) {
-    return json({ message: "GITHUB_WEBHOOK_SECRET not set" }, 500);
   }
   const payload = await request.json();
   const signature = request.headers.get("X-Hub-Signature");
