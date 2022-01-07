@@ -90,6 +90,7 @@ To install govinor, you need to SSH into your EC2 instance and run the following
 4. Add .env file `cp .env.example .env` and
 5. Edit .env: change `ADMIN_USERNAME`, `ADMIN_PASSWORD` and set `GITHUB_WEBHOOK_SECRET`
 6. Install dependencies: `npm install`
-7. Create systemd service: `sudo cp -i ~/govinor/service/govinor.service /etc/systemd/system`
-8. Enable govinor systemd service: `sudo systemctl enable govinor.service`
-9. Start govinor systemd service: `sudo systemctl start govinor`
+7. Build app: `npm run build`
+8. Create systemd service: `sudo cp -i ~/govinor/service/govinor.service /etc/systemd/system`
+9. Enable govinor systemd service: `sudo systemctl enable govinor.service`
+10. Start govinor systemd service: `sudo systemctl start govinor`
