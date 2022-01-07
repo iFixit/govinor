@@ -68,9 +68,28 @@ To install Node.js, run the following command:
 nvm install 14
 ```
 
-### Install govinor instance
+### Install govinor on the server
+
+#### Prerequisites
+
+You need to have a Github webhook configured for the repo you want to deploy.
+Head to your repo settings and add a webhook that points to the following settings:
+
+- Payload URL: https://govinor.com/github/webhook
+- Content type: `application/json`
+
+Select also "Send me everything".
+
+#### Install
 
 To install govinor, you need to SSH into your EC2 instance and run the following commands:
 
 1. Create deployment folder: `mkdir -p ~/deployments`
 2. Clone this repo
+3. cd into the repo: `cd govinor`
+4. Add .env file `cp .env.example .env` and
+5. Edit .env: change `ADMIN_USERNAME`, `ADMIN_PASSWORD` and set `GITHUB_WEBHOOK_SECRET`
+6. Install dependencies: `npm install`
+7. Create systemd service: `sudo cp -i ~/govinor/service/govinor.service /etc/systemd/system`
+8. Enable govinor systemd service: `sudo systemctl enable govinor.service`
+9. Start govinor systemd service: `sudo systemctl start govinor`
