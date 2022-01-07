@@ -20,6 +20,18 @@ This starts your app in development mode, rebuilding assets on file changes.
 
 ## Deployment
 
+If you need to setup a new server read the instructions below on "Setup AWS resources" and "Install Govinor on the server".
+
+When you need to deploy a new version of govinor, run the following commands:
+
+```sh
+cd ~/govinor;
+git pull;
+npm install;
+npm run build;
+npm run deploy;
+```
+
 ### Setup AWS resources
 
 First, create an AWS account and create an IAM user with these permissions:

@@ -1,0 +1,33 @@
+{
+  "apps": {
+    "http": {
+      "servers": {
+        "dashboard": {
+          "listen": [":443"],
+          "routes": [
+            {
+              "handle": [
+                {
+                  "handler": "reverse_proxy",
+                  "transport": {
+                    "protocol": "http"
+                  },
+                  "upstreams": [
+                    {
+                      "dial": "localhost:3000"
+                    }
+                  ]
+                }
+              ],
+              "match": [
+                {
+                  "host": ["govinor.com"]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}
