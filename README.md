@@ -106,3 +106,15 @@ To install govinor, you need to SSH into your EC2 instance and run the following
 8. Create systemd service: `sudo cp -i ~/govinor/service/govinor.service /etc/systemd/system`
 9. Enable govinor systemd service: `sudo systemctl enable govinor.service`
 10. Start govinor systemd service: `sudo systemctl start govinor`
+
+Check that govinor service is running by running the following command:
+
+```sh
+sudo systemctl status govinor
+```
+
+Finally as the last step initialize the Caddy config:
+
+```sh
+./scripts/init-caddy.sh
+```
