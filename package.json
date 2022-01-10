@@ -9,12 +9,12 @@
     "dev": "concurrently -p \"[{name}]\" -n \"remix,workers,tailwind,redis\" -c \"blue.bold,magenta.bold,green.bold,red.bold\" \"npm:dev:remix\" \"npm:dev:workers\" \"npm:dev:tailwind\" \"npm:dev:redis\"",
     "dev:remix": "node -r dotenv/config node_modules/.bin/remix dev",
     "dev:tailwind": "tailwindcss -o ./app/styles.css --watch",
-    "dev:workers": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register workers/index.ts",
+    "dev:workers": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register -r dotenv/config workers/index.ts",
     "dev:redis": "docker compose up",
     "postinstall": "remix setup node",
     "start": "npm run start:remix & npm run start:workers",
     "start:remix": "node -r dotenv/config node_modules/.bin/remix-serve build",
-    "start:workers": "cross-env NODE_ENV=production ts-node --transpile-only -r tsconfig-paths/register workers/index.ts",
+    "start:workers": "cross-env NODE_ENV=production ts-node --transpile-only -r tsconfig-paths/register -r dotenv/config workers/index.ts",
     "deploy": "./deploy.sh"
   },
   "dependencies": {
