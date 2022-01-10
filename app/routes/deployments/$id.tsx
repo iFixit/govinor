@@ -7,7 +7,7 @@ import {
 import dayjs from "dayjs";
 import calendar from "dayjs/plugin/calendar";
 import { Fragment } from "react";
-import { Links, LoaderFunction, Meta, Scripts, useCatch } from "remix";
+import { LoaderFunction, useCatch } from "remix";
 import invariant from "tiny-invariant";
 import { JobStatusBadge } from "~/components/JobStatusBadge";
 import { getHumanReadableDateTime } from "~/helpers/date-helpers";
@@ -39,26 +39,34 @@ interface LoaderData {
 }
 
 export let loader: LoaderFunction = async ({ params }): Promise<LoaderData> => {
+  console.log("\n\n\n#### LOG ME PLEASE 🚀");
   invariant(params.id, "Expected params.id");
+  console.log("find job..");
   const rawJob = await PushJob.find(params.id);
   if (rawJob == null) {
+    console.log("no job found");
     throw new Response("Deployment not Found", {
       status: 404,
       statusText: "Deployment not found",
     });
   }
+  console.log("job found");
   let progress = JobProgressLogger.isProgressLog(rawJob.progress)
     ? rawJob.progress
     : undefined;
 
+  console.log("progress found", progress);
+
   const deployment = await getDeploymentByBranch(rawJob.data.branch);
 
   if (deployment == null) {
+    console.log("no deployment found");
     throw new Response("Deployment has not been created", {
       status: 404,
       statusText: "Deployment has not been created",
     });
   }
+  console.log("deployment found");
 
   return {
     deployment,
