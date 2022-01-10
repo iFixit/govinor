@@ -16,6 +16,7 @@ import {
 import { classNames } from "~/helpers/ui-helpers";
 import { requireAuthorization } from "~/lib/session.server";
 import styles from "./styles.css";
+import { ErrorBoundaryComponent } from "remix";
 
 export let links: LinksFunction = () => {
   return [{ rel: "stylesheet", href: styles }];
@@ -54,6 +55,29 @@ export default function App() {
     </html>
   );
 }
+
+export const ErrorBoundary: ErrorBoundaryComponent = ({ error }) => {
+  console.error(error);
+  return (
+    <html>
+      <head>
+        <title>Oh no!</title>
+        <Meta />
+        <Links />
+      </head>
+      <body>
+        <Layout>
+          <div className="bg-red-100 w-[500px] py-10 mx-auto text-center">
+            <h1 className="text-4xl leading-tight font-bold">
+              Oh no! The app crashed :(
+            </h1>
+          </div>
+        </Layout>
+        <Scripts />
+      </body>
+    </html>
+  );
+};
 
 const navigation = [
   { name: "Dashboard", href: "/" },

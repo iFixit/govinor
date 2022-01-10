@@ -7,7 +7,7 @@ import {
 import dayjs from "dayjs";
 import calendar from "dayjs/plugin/calendar";
 import { Fragment } from "react";
-import { LoaderFunction } from "remix";
+import { Links, LoaderFunction, Meta, Scripts, useCatch } from "remix";
 import invariant from "tiny-invariant";
 import { JobStatusBadge } from "~/components/JobStatusBadge";
 import { getHumanReadableDateTime } from "~/helpers/date-helpers";
@@ -42,7 +42,10 @@ export let loader: LoaderFunction = async ({ params }): Promise<LoaderData> => {
   invariant(params.id, "Expected params.id");
   const rawJob = await PushJob.find(params.id);
   if (rawJob == null) {
-    throw new Response("Not Found", { status: 404 });
+    throw new Response("Deployment not Found", {
+      status: 404,
+      statusText: "Deployment not found",
+    });
   }
   let progress = JobProgressLogger.isProgressLog(rawJob.progress)
     ? rawJob.progress
@@ -50,7 +53,12 @@ export let loader: LoaderFunction = async ({ params }): Promise<LoaderData> => {
 
   const deployment = await getDeploymentByBranch(rawJob.data.branch);
 
-  invariant(deployment, "Deployment not found");
+  if (deployment == null) {
+    throw new Response("Deployment has not been created", {
+      status: 404,
+      statusText: "Deployment has not been created",
+    });
+  }
 
   return {
     deployment,
@@ -206,5 +214,15 @@ export default function Job() {
         </div>
       </main>
     </>
+  );
+}
+
+export function CatchBoundary() {
+  const caught = useCatch();
+  return (
+    <div className="w-[500px] py-10 mx-auto text-center">
+      <h1 className="text-4xl leading-tight font-bold">{caught.status}</h1>
+      <p>{caught.statusText}</p>
+    </div>
   );
 }
