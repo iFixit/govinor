@@ -18,8 +18,8 @@ npm run dev
 
 This starts your app in development mode, rebuilding assets on file changes.
 
-> :warning: **Note**: Govinor carries out a lot of work using shell commands that won't probably work on your system.
-> The target system is Ubuntu 20.04. These functionalities needs to be mocked in order to test locally, so for now dev
+> :warning: **Note**: Govinor carries out a lot of work using shell commands that won't probably work on your local machine.
+> The target OS is Ubuntu 20.04. These functionalities needs to be mocked in order to be tested locally, so for now dev
 > mode is only meant for testing UI changes to the Govinor dashboard.
 
 ## Deployment
