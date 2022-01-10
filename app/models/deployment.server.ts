@@ -75,7 +75,7 @@ interface DeployOptions extends BaseOptions {
  * @param options Options for the deployment.
  */
 export async function deploy(options: DeployOptions): Promise<void> {
-  const info = options.logger?.info ?? (async () => {});
+  const info = createInfo(options.logger);
   const shell = new Shell(options.logger);
   const handle = getBranchHandle(options.branch);
   await shell.run(dockerSystemPruneCommand());
@@ -127,6 +127,16 @@ export async function deploy(options: DeployOptions): Promise<void> {
   }
 }
 
+function createInfo(
+  logger: Logger | undefined
+): (message: string) => Promise<void> {
+  return async (message) => {
+    if (logger) {
+      return logger.info(message);
+    }
+  };
+}
+
 interface DestroyOptions extends BaseOptions {
   branch: string;
   // The path where the docker compose file is located within the repo.
@@ -138,7 +148,7 @@ interface DestroyOptions extends BaseOptions {
  * @param options Details about the deployment to destroy.
  */
 export async function destroy(options: DestroyOptions): Promise<void> {
-  const info = options.logger?.info ?? (async () => {});
+  const info = createInfo(options.logger);
   const shell = new Shell(options.logger);
   const handle = getBranchHandle(options.branch);
   const hasDomainRoute = await hasDomainRouteForHandle(handle);
