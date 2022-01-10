@@ -1,4 +1,5 @@
 import { Job } from "bullmq";
+import { DEPLOYMENT_DOCKER_COMPOSE_ROOT_DIRECTORY } from "~/../config/env";
 import { BaseJob } from "~/lib/jobs.server";
 import { JobProgressLogger } from "~/lib/logger";
 import { deploy } from "~/models/deployment.server";
@@ -22,7 +23,7 @@ export class PushJob extends BaseJob<PushJobPayload, PushJobResult> {
     await deploy({
       branch,
       cloneUrl,
-      rootDirectory: "",
+      rootDirectory: DEPLOYMENT_DOCKER_COMPOSE_ROOT_DIRECTORY,
       logger,
     });
     return `Deployed branch "${branch}"`;

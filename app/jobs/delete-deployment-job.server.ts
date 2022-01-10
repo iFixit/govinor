@@ -1,4 +1,5 @@
 import { Job } from "bullmq";
+import { DEPLOYMENT_DOCKER_COMPOSE_ROOT_DIRECTORY } from "~/../config/env";
 import { BaseJob } from "~/lib/jobs.server";
 import { JobProgressLogger } from "~/lib/logger";
 import { destroy, getDeploymentByBranch } from "~/models/deployment.server";
@@ -28,7 +29,7 @@ export class DeleteDeploymentJob extends BaseJob<
     if (deployment) {
       await destroy({
         branch,
-        rootDirectory: "",
+        rootDirectory: DEPLOYMENT_DOCKER_COMPOSE_ROOT_DIRECTORY,
         logger,
       });
       return `Removed deployment for branch "${branch}"`;
