@@ -122,3 +122,24 @@ Finally as the last step initialize the Caddy config:
 ```sh
 ./scripts/init-caddy.sh
 ```
+
+### Debug
+
+For convenience here a few useful commands for diagnosing problems:
+
+```sh
+# Check govinor service status
+systemctl status govinor
+
+# Look up service logs
+journalctl -u govinor -b -r
+
+# Restart govinor service (you may need to run this with sudo)
+systemctl restart govinor
+
+# Reload Systemd when you change service configuration
+sudo systemctl daemon-reload
+
+# View the process running govinor
+lsof -i tcp:3000
+```
