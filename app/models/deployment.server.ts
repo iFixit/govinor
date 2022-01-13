@@ -303,7 +303,7 @@ function dockerComposeUpCommand({
   return {
     type: "spawn-command",
     command: "docker",
-    args: ["compose", "up", "--no-deps", "--build", "-d"],
+    args: ["compose", "-p", branchHandle, "up", "--no-deps", "--build", "-d"],
     workingDirectory,
   };
 }
