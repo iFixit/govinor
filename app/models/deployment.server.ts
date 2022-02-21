@@ -338,7 +338,7 @@ function dockerComposeDownCommand({
   return {
     type: "spawn-command",
     command: "docker",
-    args: ["compose", "down"],
+    args: ["compose", "-p", branchHandle, "down"],
     workingDirectory,
   };
 }
