@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useFetcher, useLoaderData, useMatches } from "remix";
+import { useFetcher, useLoaderData, useLocation, useMatches } from "remix";
 
 export interface UseSWRDataOptions {
   intervalMillis?: number;
@@ -9,13 +9,14 @@ export function useSWRData<Data = any>({
 }: UseSWRDataOptions = {}) {
   const initialData = useLoaderData<Data>();
   const matches = useMatches();
+  const location = useLocation();
   const currentPath =
     matches.length > 0 ? matches[matches.length - 1].pathname : "";
   const fetcher = useFetcher<Data>();
 
   React.useEffect(() => {
     let interval = setInterval(() => {
-      fetcher.load(currentPath);
+      fetcher.load(`${currentPath}${location.search}`);
     }, intervalMillis);
     return () => clearInterval(interval);
   }, [fetcher, currentPath]);

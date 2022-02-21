@@ -1,4 +1,4 @@
-import { ADMIN_PASSWORD, ADMIN_USERNAME } from "~/../config/env";
+import { ADMIN_PASSWORD, ADMIN_USERNAME } from "~/../config/env.server";
 import { redirect } from "remix";
 
 export interface Credentials {

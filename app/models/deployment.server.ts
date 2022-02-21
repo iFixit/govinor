@@ -1,6 +1,6 @@
 import fs from "fs/promises";
 import getPort from "get-port";
-import { DEPLOYMENTS_DIRECTORY, DEPLOY_DOMAIN } from "~/../config/env";
+import { DEPLOYMENTS_DIRECTORY, DEPLOY_DOMAIN } from "~/../config/env.server";
 import {
   getBranchHandle,
   getRepoDeployPath,

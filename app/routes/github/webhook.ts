@@ -1,4 +1,4 @@
-import { GITHUB_WEBHOOK_SECRET } from "~/../config/env";
+import { GITHUB_WEBHOOK_SECRET } from "~/../config/env.server";
 import crypto from "crypto";
 import { ActionFunction, json } from "remix";
 import { DeleteDeploymentJob } from "~/jobs/delete-deployment-job.server";

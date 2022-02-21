@@ -1,4 +1,4 @@
-import { DEPLOYMENTS_DIRECTORY } from "~/../config/env";
+import { DEPLOYMENTS_DIRECTORY } from "~/../config/env.server";
 
 interface GetRepoDeployPathOptions {
   branchHandle: string;
