@@ -84,6 +84,7 @@ export async function deploy(options: DeployOptions): Promise<void> {
     await info(
       `Deployment for branch "${options.branch}" already exists. Pulling latest changes to update.`
     );
+    await shell.run(resetLocalBranchCommand({ branchHandle: handle }));
     await shell.run(pullLatestChangesCommand({ branchHandle: handle }));
   } else {
     await info(`Creating deployment assets for branch "${options.branch}".`);
@@ -268,6 +269,22 @@ function addCaddyRouteCommand({
     type: "spawn-command",
     command: `curl localhost:2019/config/apps/http/servers/dashboard/routes -X POST -H "Content-Type: application/json" -d '{ "@id": "${branchHandle}", "handle": [ { "handler": "reverse_proxy", "transport": { "protocol": "http" }, "upstreams": [ { "dial": "localhost:${port}" } ] } ], "match": [ { "host": [ "${branchHandle}.${DEPLOY_DOMAIN}" ] } ] }'`,
     useShellSyntax: true,
+  };
+}
+
+interface ResetLocalBranchCommandOptions {
+  branchHandle: string;
+}
+
+function resetLocalBranchCommand({
+  branchHandle,
+}: ResetLocalBranchCommandOptions): SpawnCommand {
+  const repoDirectory = getRepoPath(branchHandle);
+  return {
+    type: "spawn-command",
+    command: "git",
+    args: ["reset", "--hard", `origin/${branchHandle}`],
+    workingDirectory: repoDirectory,
   };
 }
 
