@@ -2,11 +2,10 @@ import { Menu, Transition } from "@headlessui/react";
 import {
   CalendarIcon,
   ChevronDownIcon,
-  LinkIcon,
-  RefreshIcon,
+  ExclamationIcon,
   LightningBoltIcon,
+  LinkIcon,
 } from "@heroicons/react/solid";
-import { DEPLOY_DOMAIN } from "~/../config/env.server";
 import dayjs from "dayjs";
 import calendar from "dayjs/plugin/calendar";
 import { Fragment } from "react";
@@ -16,18 +15,17 @@ import {
   LoaderFunction,
   redirect,
   useCatch,
-  useFetcher,
 } from "remix";
 import invariant from "tiny-invariant";
+import { DEPLOY_DOMAIN } from "~/../config/env.server";
 import { JobStatusBadge } from "~/components/JobStatusBadge";
+import { badRequest } from "~/helpers/application-helpers";
 import { getHumanReadableDateTime } from "~/helpers/date-helpers";
 import { classNames } from "~/helpers/ui-helpers";
 import { PushJob, PushJobPayload } from "~/jobs/push-job.server";
 import { useSWRData } from "~/lib/hooks";
 import { JobProgressLogger, ProgressLog } from "~/lib/logger";
 import { Deployment, getDeploymentByBranch } from "~/models/deployment.server";
-import { badRequest } from "~/helpers/application-helpers";
-import { jobIdForGroup } from "bullmq";
 
 dayjs.extend(calendar);
 
@@ -46,7 +44,7 @@ interface JobData {
 }
 
 interface LoaderData {
-  deployment: Deployment;
+  deployment: Deployment | null;
   job: JobData;
 }
 
@@ -78,13 +76,6 @@ export let loader: LoaderFunction = async ({
     };
   } else {
     deployment = await getDeploymentByBranch(rawJob.data.branch);
-  }
-
-  if (deployment == null) {
-    throw new Response("Deployment has not been created", {
-      status: 404,
-      statusText: "Deployment has not been created",
-    });
   }
 
   return {
@@ -153,7 +144,8 @@ export default function Job() {
   const processedOn = dayjs(job.processedOn);
   const finishedOn = dayjs(job.finishedOn);
 
-  const shouldViewLink = finishedOn.isValid() && job.status === "completed";
+  const shouldViewLink =
+    deployment != null && finishedOn.isValid() && job.status === "completed";
   const canRedeploy = ["failed", "completed"].includes(job.status);
 
   return (
@@ -206,7 +198,7 @@ export default function Job() {
               {shouldViewLink && (
                 <span className="hidden xl:block ml-3">
                   <a
-                    href={`${deployment.url}/admin`}
+                    href={`${deployment?.url}/admin`}
                     className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                     target="_blank"
                   >
@@ -260,7 +252,7 @@ export default function Job() {
                         <Menu.Item>
                           {({ active }) => (
                             <a
-                              href={`${deployment.url}/admin`}
+                              href={`${deployment?.url}/admin`}
                               target="_blank"
                               className={classNames(
                                 active ? "bg-gray-100" : "",
@@ -300,21 +292,41 @@ export default function Job() {
         </div>
       </header>
       <main>
-        <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-          <div className="px-4 sm:px-0">
-            {/* Logs */}
-            <div className="flex flex-col mt-10">
-              <div className="bg-white overflow-hidden shadow rounded-lg divide-y divide-gray-100">
-                <div className="px-4 py-5 sm:px-6">
-                  <span className="text-xl font-medium">Logs</span>
+        <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 mt-10 space-y-6">
+          {deployment == null && (
+            <div className="rounded-md bg-yellow-50 p-4">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <ExclamationIcon
+                    className="h-5 w-5 text-yellow-400"
+                    aria-hidden="true"
+                  />
                 </div>
-                <div className="px-4 py-5 sm:p-6 min-h-[200px] bg-gray-800 text-gray-300">
-                  {job.progress?.lines.map((line, index) => (
-                    <pre key={index} className="whitespace-pre-wrap">
-                      {line}
-                    </pre>
-                  ))}
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-yellow-800">
+                    Deployment not available
+                  </h3>
+                  <div className="mt-2 text-sm text-yellow-700">
+                    <p>
+                      The deployment has been deleted or has yet to be created
+                    </p>
+                  </div>
                 </div>
+              </div>
+            </div>
+          )}
+          {/* Logs */}
+          <div className="flex flex-col">
+            <div className="bg-white overflow-hidden shadow sm:rounded-lg divide-y divide-gray-100">
+              <div className="px-4 py-5 sm:px-6">
+                <span className="text-xl font-medium">Logs</span>
+              </div>
+              <div className="px-4 py-5 sm:p-6 min-h-[200px] bg-gray-800 text-gray-300 overflow-scroll">
+                {job.progress?.lines.map((line, index) => (
+                  <pre key={index} className="whitespace-pre-wrap">
+                    {line}
+                  </pre>
+                ))}
               </div>
             </div>
           </div>

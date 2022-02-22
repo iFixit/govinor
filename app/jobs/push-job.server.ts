@@ -30,6 +30,6 @@ export class PushJob extends BaseJob<PushJobPayload, PushJobResult> {
   }
 
   protected getJobName(payload: PushJobPayload): string {
-    return `Deploy branch ${payload.branch}`;
+    return `Deploy branch "${payload.branch}"`;
   }
 }
