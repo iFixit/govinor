@@ -96,6 +96,15 @@ export async function deploy(options: DeployOptions): Promise<void> {
       })
     );
   }
+  const envFileExists = await checkEnvFileExists(handle, options.rootDirectory);
+  if (!envFileExists) {
+    await shell.run(
+      addEnvFileCommand({
+        branchHandle: handle,
+        rootDirectory: options.rootDirectory,
+      })
+    );
+  }
   let port = await getDeploymentPort(options.branch, options.rootDirectory);
   if (port == null) {
     await info("No port found. Getting a new one..");
@@ -229,6 +238,43 @@ function cloneRepoCommand(options: CloneRepoCommandOptions): SpawnCommand {
     command: "git",
     args: ["clone", "-b", options.branch, options.cloneUrl, options.path],
     workingDirectory: DEPLOYMENTS_DIRECTORY,
+  };
+}
+
+async function checkEnvFileExists(
+  branchHandle: string,
+  rootDirectory?: string
+): Promise<boolean> {
+  const deployPath = getRepoDeployPath({
+    rootDirectory,
+    branchHandle,
+  });
+  try {
+    await fs.access(`${deployPath}/.env`);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+interface AddEnvFileCommandOptions {
+  branchHandle: string;
+  rootDirectory?: string;
+}
+
+function addEnvFileCommand({
+  branchHandle,
+  rootDirectory,
+}: AddEnvFileCommandOptions): SpawnCommand {
+  const workingDirectory = getRepoDeployPath({
+    rootDirectory,
+    branchHandle,
+  });
+  return {
+    type: "spawn-command",
+    command: "cp",
+    args: [".env.example", ".env"],
+    workingDirectory,
   };
 }
 
