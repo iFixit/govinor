@@ -26,5 +26,5 @@ function getRelativePath(path: string) {
 }
 
 export function getBranchHandle(branch: string) {
-  return branch.replace(/\//g, "-");
+  return branch.replace(/\//g, "-").replace(/_/g, "-");
 }
