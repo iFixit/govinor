@@ -84,8 +84,8 @@ export async function deploy(options: DeployOptions): Promise<void> {
     await info(
       `Deployment for branch "${options.branch}" already exists. Pulling latest changes to update.`
     );
+    await shell.run(fetchLatestChangesCommand({ branchHandle: handle }));
     await shell.run(resetLocalBranchCommand({ branchHandle: handle }));
-    await shell.run(pullLatestChangesCommand({ branchHandle: handle }));
   } else {
     await info(`Creating deployment assets for branch "${options.branch}".`);
     await shell.run(
@@ -334,18 +334,18 @@ function resetLocalBranchCommand({
   };
 }
 
-interface PullLatestChangesCommandOptions {
+interface FetchLatestChangesCommandOptions {
   branchHandle: string;
 }
 
-function pullLatestChangesCommand({
+function fetchLatestChangesCommand({
   branchHandle,
-}: PullLatestChangesCommandOptions): SpawnCommand {
+}: FetchLatestChangesCommandOptions): SpawnCommand {
   const workingDirectory = getRepoPath(branchHandle);
   return {
     type: "spawn-command",
     command: "git",
-    args: ["pull"],
+    args: ["fetch", "origin"],
     workingDirectory,
   };
 }
