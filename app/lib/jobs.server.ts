@@ -1,4 +1,11 @@
-import { Job, Queue, QueueOptions, Worker, WorkerOptions } from "bullmq";
+import {
+  Job,
+  Queue,
+  QueueOptions,
+  Worker,
+  WorkerOptions,
+  QueueScheduler,
+} from "bullmq";
 import { connection } from "../../config/jobs";
 
 type PayloadOf<ConcreteJob> = ConcreteJob extends BaseJob<infer T, any>
@@ -11,8 +18,17 @@ type ReturnTypeOf<ConcreteJob> = ConcreteJob extends BaseJob<any, infer T>
 export abstract class BaseJob<PayloadType = any, ReturnType = any> {
   abstract readonly queueName: string;
   private _queue: Queue<PayloadType, ReturnType> | undefined;
+  private _scheduler: QueueScheduler | undefined;
+
+  get scheduler(): QueueScheduler {
+    if (!this._scheduler) {
+      throw new Error("Scheduler not started");
+    }
+    return this._scheduler;
+  }
 
   startWorker(options?: WorkerOptions) {
+    this._scheduler = new QueueScheduler(this.queueName);
     return new Worker<PayloadType, ReturnType>(
       this.queueName,
       this.perform,

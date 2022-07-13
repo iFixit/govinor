@@ -3,10 +3,25 @@ import { DeleteDeploymentJob } from "~/jobs/delete-deployment-job.server";
 import { PushJob } from "../app/jobs/push-job.server";
 import { connection } from "../config/jobs";
 
+let pushJob: PushJob;
+let deleteDeploymentJob: DeleteDeploymentJob;
+
 checkRedisConnection().then(() => {
   console.log("redis is ready");
-  PushJob.startWorker({ connection });
-  DeleteDeploymentJob.startWorker({ connection });
+  pushJob = new PushJob();
+  pushJob.startWorker({ connection });
+  deleteDeploymentJob = new DeleteDeploymentJob();
+  deleteDeploymentJob.startWorker({ connection });
+});
+
+process.on("SIGTERM", () => {
+  console.info("SIGTERM signal received.");
+  if (pushJob) {
+    pushJob.scheduler.close();
+  }
+  if (deleteDeploymentJob) {
+    deleteDeploymentJob.scheduler.close();
+  }
 });
 
 function checkRedisConnection() {
