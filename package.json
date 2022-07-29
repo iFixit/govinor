@@ -21,7 +21,8 @@
     "start": "npm run start:remix & npm run start:workers",
     "start:remix": "node -r dotenv/config node_modules/.bin/remix-serve build",
     "start:workers": "cross-env NODE_ENV=production ts-node --transpile-only -r tsconfig-paths/register -r dotenv/config workers/index.ts",
-    "deploy": "./deploy.sh"
+    "deploy": "./deploy.sh",
+    "postinstall": "remix setup node"
   },
   "dependencies": {
     "@headlessui/react": "1.6.6",
