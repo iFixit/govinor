@@ -1,4 +1,4 @@
-import { json } from "remix";
+import { json } from "@remix-run/node";
 
 export function assertNever(value: never): never {
   throw new Error(`Unexpected value should never occur: ${value}`);
