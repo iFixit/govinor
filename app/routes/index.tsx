@@ -19,6 +19,7 @@ import invariant from "tiny-invariant";
 import { DEPLOY_DOMAIN } from "~/../config/env.server";
 import { classNames } from "~/helpers/ui-helpers";
 import { PushJob } from "~/jobs/push-job.server";
+import { commitSession, getSession } from "~/lib/session.server";
 import { findAllBranches } from "~/models/branch.server";
 import { getSystemStats } from "~/models/system.server";
 
@@ -77,16 +78,30 @@ export const action: ActionFunction = async ({ request }) => {
         await PushJob.performLater({
           branch: branchName,
         });
-        throw redirect("/");
+        const session = await getSession(request.headers.get("Cookie"));
+        session.flash("globalMessage", `Started a deploy for "${branchName}"`);
+        throw redirect("/", {
+          headers: {
+            "Set-Cookie": await commitSession(session),
+          },
+        });
       } catch (error) {
+        if (error instanceof Response) {
+          throw error;
+        }
         if (error instanceof Error) {
           return json<ActionData>({
             error: error.message,
           });
         }
-        return json<ActionData>({
-          error: "unknown error",
-        });
+        return json<ActionData>(
+          {
+            error: "unknown error",
+          },
+          {
+            status: 500,
+          }
+        );
       }
     }
     default: {

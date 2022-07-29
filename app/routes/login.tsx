@@ -1,5 +1,5 @@
 import { json, LoaderFunction, redirect } from "@remix-run/node";
-import { isAuthorized } from "~/lib/session.server";
+import { isAuthorized } from "~/lib/auth.server";
 
 export const loader: LoaderFunction = async ({ request }) => {
   if (isAuthorized(request)) {

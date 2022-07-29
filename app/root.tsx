@@ -2,6 +2,7 @@ import { Disclosure } from "@headlessui/react";
 import { MenuIcon, XIcon } from "@heroicons/react/outline";
 import {
   ErrorBoundaryComponent,
+  json,
   LinksFunction,
   LoaderFunction,
   MetaFunction,
@@ -14,10 +15,13 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useLoaderData,
 } from "@remix-run/react";
 import * as React from "react";
 import { classNames } from "~/helpers/ui-helpers";
-import { requireAuthorization } from "~/lib/session.server";
+import { requireAuthorization } from "~/lib/auth.server";
+import { commitSession, getSession } from "~/lib/session.server";
+import { GlobalNotification } from "./components/GlobalNotification";
 import styles from "./styles.css";
 
 export let links: LinksFunction = () => {
@@ -27,17 +31,28 @@ export const meta: MetaFunction = () => {
   return { title: "Govinor" };
 };
 
-interface LoaderData {}
+type LoaderData = {
+  globalMessage: string | null;
+};
 
-export let loader: LoaderFunction = async ({
-  request,
-}): Promise<LoaderData> => {
+export let loader: LoaderFunction = async ({ request }) => {
   await requireAuthorization(request);
 
-  return {};
+  const session = await getSession(request.headers.get("Cookie"));
+  const globalMessage: string | null = session.get("globalMessage") ?? null;
+
+  return json<LoaderData>(
+    { globalMessage },
+    {
+      headers: {
+        "Set-Cookie": await commitSession(session),
+      },
+    }
+  );
 };
 
 export default function App() {
+  const { globalMessage } = useLoaderData<LoaderData>();
   return (
     <html lang="en" className="h-full bg-gray-100">
       <head>
@@ -50,6 +65,7 @@ export default function App() {
         <Layout>
           <Outlet />
         </Layout>
+        <GlobalNotification message={globalMessage} dismissAfter={2000} />
         <ScrollRestoration />
         <Scripts />
         {process.env.NODE_ENV === "development" && <LiveReload />}
