@@ -6,16 +6,11 @@ import {
   LightningBoltIcon,
   LinkIcon,
 } from "@heroicons/react/solid";
+import { ActionFunction, LoaderFunction, redirect } from "@remix-run/node";
+import { Form, useCatch } from "@remix-run/react";
 import dayjs from "dayjs";
 import calendar from "dayjs/plugin/calendar";
 import { Fragment } from "react";
-import {
-  ActionFunction,
-  Form,
-  LoaderFunction,
-  redirect,
-  useCatch,
-} from "remix";
 import invariant from "tiny-invariant";
 import { DEPLOY_DOMAIN } from "~/../config/env.server";
 import { JobStatusBadge } from "~/components/JobStatusBadge";

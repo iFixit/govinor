@@ -5,17 +5,16 @@ import {
   EyeIcon,
   PencilAltIcon,
 } from "@heroicons/react/solid";
-import React, { Fragment } from "react";
-import ReactDOM from "react-dom";
 import {
   ActionFunction,
-  Form,
   json,
   LoaderFunction,
   MetaFunction,
   redirect,
-  useLoaderData,
-} from "remix";
+} from "@remix-run/node";
+import { Form, useLoaderData } from "@remix-run/react";
+import React, { Fragment } from "react";
+import ReactDOM from "react-dom";
 import invariant from "tiny-invariant";
 import { DEPLOY_DOMAIN } from "~/../config/env.server";
 import { classNames } from "~/helpers/ui-helpers";

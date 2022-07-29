@@ -1,5 +1,10 @@
+import {
+  useFetcher,
+  useLoaderData,
+  useLocation,
+  useMatches,
+} from "@remix-run/react";
 import * as React from "react";
-import { useFetcher, useLoaderData, useLocation, useMatches } from "remix";
 
 export interface UseSWRDataOptions {
   intervalMillis?: number;

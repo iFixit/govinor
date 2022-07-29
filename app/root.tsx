@@ -1,22 +1,24 @@
 import { Disclosure } from "@headlessui/react";
 import { MenuIcon, XIcon } from "@heroicons/react/outline";
-import * as React from "react";
+import {
+  ErrorBoundaryComponent,
+  LinksFunction,
+  LoaderFunction,
+  MetaFunction,
+} from "@remix-run/node";
 import {
   Links,
-  LinksFunction,
   LiveReload,
-  LoaderFunction,
   Meta,
-  MetaFunction,
   NavLink,
   Outlet,
   Scripts,
   ScrollRestoration,
-} from "remix";
+} from "@remix-run/react";
+import * as React from "react";
 import { classNames } from "~/helpers/ui-helpers";
 import { requireAuthorization } from "~/lib/session.server";
 import styles from "./styles.css";
-import { ErrorBoundaryComponent } from "remix";
 
 export let links: LinksFunction = () => {
   return [{ rel: "stylesheet", href: styles }];

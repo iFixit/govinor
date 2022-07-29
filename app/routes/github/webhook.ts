@@ -1,5 +1,5 @@
+import { ActionFunction, json } from "@remix-run/node";
 import crypto from "crypto";
-import { ActionFunction, json } from "remix";
 import {
   DEPLOYMENT_DOCKER_COMPOSE_ROOT_DIRECTORY,
   GITHUB_WEBHOOK_SECRET,

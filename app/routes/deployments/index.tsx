@@ -1,11 +1,12 @@
 import dayjs from "dayjs";
-import { Link, LoaderFunction, useLoaderData } from "remix";
+import { LoaderFunction } from "@remix-run/node";
 import { JobStatusBadge } from "~/components/JobStatusBadge";
 import { PushJob } from "~/jobs/push-job.server";
 import {
   getHumanReadableDateTime,
   getHumanReadableDuration,
 } from "~/helpers/date-helpers";
+import { Link, useLoaderData } from "@remix-run/react";
 
 interface JobData {
   id?: string;
