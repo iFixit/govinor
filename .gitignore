@@ -6,3 +6,6 @@ node_modules
 .env
 /app/styles.css
 /workers/build
+
+/prisma/data.db
+/prisma/data.db-journal

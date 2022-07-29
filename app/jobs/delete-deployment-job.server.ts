@@ -1,17 +1,13 @@
 import { Job } from "bullmq";
-import { DEPLOYMENT_DOCKER_COMPOSE_ROOT_DIRECTORY } from "~/../config/env.server";
 import { BaseJob } from "~/lib/jobs.server";
 import { JobProgressLogger } from "~/lib/logger";
-import { destroy, getDeploymentByBranch } from "~/models/deployment.server";
+import { deleteBranch, findBranch } from "~/models/branch.server";
+import { destroy } from "~/models/deployment.server";
 
 const queueName = "delete_deployment";
 
 export interface DeleteDeploymentPayload {
   branch: string;
-  sender: {
-    login: string;
-    avatar_url: string;
-  };
 }
 
 export type DeleteDeploymentResult = string;
@@ -23,18 +19,18 @@ export class DeleteDeploymentJob extends BaseJob<
   readonly queueName = queueName;
 
   protected async perform(job: Job<DeleteDeploymentPayload>) {
-    const branch = job.data.branch;
+    const branchName = job.data.branch;
     const logger = new JobProgressLogger(job);
-    const deployment = await getDeploymentByBranch(branch);
-    if (deployment) {
+    const branch = await findBranch(branchName);
+    if (branch) {
       await destroy({
         branch,
-        rootDirectory: DEPLOYMENT_DOCKER_COMPOSE_ROOT_DIRECTORY,
         logger,
       });
-      return `Removed deployment for branch "${branch}"`;
+      await deleteBranch(branchName);
+      return `Removed deployment for branch "${branchName}"`;
     }
-    throw new Error(`No deployment found for branch "${branch}"`);
+    throw new Error(`No deployment found for branch "${branchName}"`);
   }
 
   protected getJobName(payload: DeleteDeploymentPayload): string {

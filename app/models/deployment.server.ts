@@ -1,13 +1,10 @@
 import fs from "fs/promises";
 import getPort from "get-port";
 import { DEPLOYMENTS_DIRECTORY, DEPLOY_DOMAIN } from "~/../config/env.server";
-import {
-  getBranchHandle,
-  getRepoDeployPath,
-  getRepoPath,
-} from "~/helpers/deployment-helpers";
+import { getRepoDeployPath, getRepoPath } from "~/helpers/deployment-helpers";
 import { Logger } from "~/lib/logger";
 import { Shell, SpawnCommand } from "~/lib/shell.server";
+import { Branch } from "./branch.server";
 
 interface BaseOptions {
   logger?: Logger;
@@ -18,120 +15,77 @@ export interface Deployment {
   url: string;
 }
 
-/**
- * Get a deployment by its handle.
- */
-export async function getDeploymentByHandle(
-  handle: string
-): Promise<Deployment | null> {
-  const handles = await getDeploymentHandles();
-  if (!handles.includes(handle)) {
-    return null;
-  }
-  return { handle, url: `https://${handle}.${DEPLOY_DOMAIN}` };
-}
-
-/**
- * Get a deployment by its branch.
- */
-export async function getDeploymentByBranch(
-  branch: string
-): Promise<Deployment | null> {
-  const handle = getBranchHandle(branch);
-  return getDeploymentByHandle(handle);
-}
-
-/**
- * Get all deployments.
- */
-export async function getDeployments(): Promise<Deployment[]> {
-  const handles = await getDeploymentHandles();
-  return handles.map((handle) => {
-    return {
-      handle,
-      url: `https://${handle}.${DEPLOY_DOMAIN}`,
-    };
-  });
-}
-
-async function getDeploymentHandles(): Promise<string[]> {
-  try {
-    const handles = await fs.readdir(DEPLOYMENTS_DIRECTORY);
-    return handles;
-  } catch (error) {
-    return [];
-  }
-}
-
 interface DeployOptions extends BaseOptions {
-  branch: string;
-  cloneUrl: string;
-  // The path where the docker compose file is located within the repo.
-  rootDirectory?: string;
+  branch: Branch;
 }
 
 /**
  * Idempotently deploy a new branch.
  * @param options Options for the deployment.
  */
-export async function deploy(options: DeployOptions): Promise<void> {
-  const info = createInfo(options.logger);
-  const shell = new Shell(options.logger);
-  const handle = getBranchHandle(options.branch);
+export async function deploy({ logger, branch }: DeployOptions): Promise<void> {
+  const info = createInfo(logger);
+  const shell = new Shell(logger);
   await shell.run(dockerSystemPruneCommand());
-  const deploymentExists = await doesDeploymentWithHandleExist(options.branch);
+  const deploymentExists = await doesDeploymentWithHandleExist(branch.handle);
   if (deploymentExists) {
     await info(
-      `Deployment for branch "${options.branch}" already exists. Pulling latest changes to update.`
+      `Deployment for branch "${branch.handle}" already exists. Pulling latest changes to update.`
     );
-    await shell.run(fetchLatestChangesCommand({ branchHandle: handle }));
-    await shell.run(resetLocalBranchCommand({ branchHandle: handle }));
+    await shell.run(fetchLatestChangesCommand({ branchHandle: branch.handle }));
+    await shell.run(resetLocalBranchCommand({ branchHandle: branch.handle }));
   } else {
-    await info(`Creating deployment assets for branch "${options.branch}".`);
+    await info(`Creating deployment assets for branch "${branch.handle}".`);
     await shell.run(
       cloneRepoCommand({
-        branch: options.branch,
-        cloneUrl: options.cloneUrl,
-        path: handle,
+        branch: branch.handle,
+        cloneUrl: branch.cloneUrl,
+        path: branch.handle,
       })
     );
   }
-  const envFileExists = await checkEnvFileExists(handle, options.rootDirectory);
+  const envFileExists = await checkEnvFileExists(
+    branch.handle,
+    branch.dockerComposeDirectory
+  );
   if (!envFileExists) {
     await shell.run(
       addEnvFileCommand({
-        branchHandle: handle,
-        rootDirectory: options.rootDirectory,
+        branchHandle: branch.handle,
+        rootDirectory: branch.dockerComposeDirectory,
       })
     );
   }
-  let port = await getDeploymentPort(options.branch, options.rootDirectory);
+  let port = await getDeploymentPort(
+    branch.handle,
+    branch.dockerComposeDirectory
+  );
   if (port == null) {
     await info("No port found. Getting a new one..");
     port = await getPort();
     await shell.run(
       addPortToEnvFileCommand({
         port,
-        branchHandle: handle,
-        rootDirectory: options.rootDirectory,
+        branchHandle: branch.handle,
+        rootDirectory: branch.dockerComposeDirectory,
       })
     );
   }
   await info("Starting deployment..");
   await shell.run(
     dockerComposeUpCommand({
-      branchHandle: handle,
-      rootDirectory: options.rootDirectory,
+      branchHandle: branch.handle,
+      rootDirectory: branch.dockerComposeDirectory,
     })
   );
-  const hasDomainRoute = await hasDomainRouteForHandle(handle);
+  const hasDomainRoute = await hasDomainRouteForHandle(branch.handle);
   if (!hasDomainRoute) {
     await info("Assigning domain to deployment..");
     await shell.run(
       addCaddyRouteCommand({
         port,
-        branchHandle: handle,
-        rootDirectory: options.rootDirectory,
+        branchHandle: branch.handle,
+        rootDirectory: branch.dockerComposeDirectory,
       })
     );
   }
@@ -148,43 +102,48 @@ function createInfo(
 }
 
 interface DestroyOptions extends BaseOptions {
-  branch: string;
-  // The path where the docker compose file is located within the repo.
-  rootDirectory?: string;
+  branch: Branch;
 }
 
 /**
  * Destroy a deployment
  * @param options Details about the deployment to destroy.
  */
-export async function destroy(options: DestroyOptions): Promise<void> {
-  const info = createInfo(options.logger);
-  const shell = new Shell(options.logger);
-  const handle = getBranchHandle(options.branch);
-  const hasDomainRoute = await hasDomainRouteForHandle(handle);
+export async function destroy({
+  logger,
+  branch,
+}: DestroyOptions): Promise<void> {
+  const info = createInfo(logger);
+  const shell = new Shell(logger);
+  const hasDomainRoute = await hasDomainRouteForHandle(branch.handle);
   if (hasDomainRoute) {
     await info("Removing domain from deployment..");
     await shell.run(
       removeCaddyRouteCommand({
-        branchHandle: handle,
+        branchHandle: branch.handle,
       })
     );
   }
-  await info("Stopping deployment..");
-  await shell.run(
-    dockerComposeDownCommand({
-      branchHandle: handle,
-      rootDirectory: options.rootDirectory,
-    })
-  );
+  const branchFolderExists = await hasBranchFolder(branch.handle);
+  if (branchFolderExists) {
+    await info("Stopping deployment..");
+    await shell.run(
+      dockerComposeDownCommand({
+        branchHandle: branch.handle,
+        rootDirectory: branch.dockerComposeDirectory,
+      })
+    );
+  }
   await info("Prune unused docker stuff..");
   await shell.run(dockerSystemPruneCommand());
-  await info("Destroying deployment assets..");
-  await shell.run(removeDeploymentFolder({ branchHandle: handle }));
+  if (branchFolderExists) {
+    await info("Destroying deployment assets..");
+    await shell.run(removeDeploymentFolder({ branchHandle: branch.handle }));
+  }
 }
 
 async function doesDeploymentWithHandleExist(handle: string): Promise<boolean> {
-  const handles = await getDeploymentHandles();
+  const handles = await getBranchFolderNames();
   return handles.includes(handle);
 }
 
@@ -419,4 +378,23 @@ function removeDeploymentFolder({
     useShellSyntax: true,
     workingDirectory: DEPLOYMENTS_DIRECTORY,
   };
+}
+
+async function getBranchFolderNames(): Promise<string[]> {
+  try {
+    const names = await fs.readdir(DEPLOYMENTS_DIRECTORY);
+    return names;
+  } catch (error) {
+    return [];
+  }
+}
+
+async function getBranchFolderName(branchHandle: string) {
+  const names = await getBranchFolderNames();
+  return names.find((name) => name === branchHandle);
+}
+
+async function hasBranchFolder(branchHandle: string) {
+  const name = await getBranchFolderName(branchHandle);
+  return name != null;
 }

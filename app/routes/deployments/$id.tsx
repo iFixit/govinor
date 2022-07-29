@@ -25,7 +25,7 @@ import { classNames } from "~/helpers/ui-helpers";
 import { PushJob, PushJobPayload } from "~/jobs/push-job.server";
 import { useSWRData } from "~/lib/hooks";
 import { JobProgressLogger, ProgressLog } from "~/lib/logger";
-import { Deployment, getDeploymentByBranch } from "~/models/deployment.server";
+import { Branch, findBranch } from "~/models/branch.server";
 
 dayjs.extend(calendar);
 
@@ -44,17 +44,13 @@ interface JobData {
 }
 
 interface LoaderData {
-  deployment: Deployment | null;
+  branch: Branch | null;
   job: JobData;
+  deployDomain: string;
 }
 
-export let loader: LoaderFunction = async ({
-  request,
-  params,
-}): Promise<LoaderData> => {
+export let loader: LoaderFunction = async ({ params }): Promise<LoaderData> => {
   invariant(params.id, "Expected params.id");
-  const url = new URL(request.url);
-  const preview = url.searchParams.get("preview");
 
   const rawJob = await PushJob.find(params.id);
   if (rawJob == null) {
@@ -67,19 +63,10 @@ export let loader: LoaderFunction = async ({
     ? rawJob.progress
     : undefined;
 
-  let deployment: Deployment | null = null;
-
-  if (preview != null) {
-    deployment = {
-      handle: preview,
-      url: `https://${preview}.${DEPLOY_DOMAIN}`,
-    };
-  } else {
-    deployment = await getDeploymentByBranch(rawJob.data.branch);
-  }
+  const branch = await findBranch(rawJob.data.branch);
 
   return {
-    deployment,
+    branch,
     job: {
       id: params.id,
       name: rawJob.name,
@@ -97,6 +84,7 @@ export let loader: LoaderFunction = async ({
       returnValue: rawJob.returnvalue,
       progress,
     },
+    deployDomain: DEPLOY_DOMAIN,
   };
 };
 
@@ -139,13 +127,13 @@ export const action: ActionFunction = async ({
 };
 
 export default function Job() {
-  let { job, deployment } = useSWRData<LoaderData>();
+  let { job, branch, deployDomain } = useSWRData<LoaderData>();
   const timestamp = dayjs(job.timestamp);
   const processedOn = dayjs(job.processedOn);
   const finishedOn = dayjs(job.finishedOn);
 
   const shouldViewLink =
-    deployment != null && finishedOn.isValid() && job.status === "completed";
+    branch != null && finishedOn.isValid() && job.status === "completed";
   const canRedeploy = ["failed", "completed"].includes(job.status);
 
   return (
@@ -198,7 +186,7 @@ export default function Job() {
               {shouldViewLink && (
                 <span className="hidden xl:block ml-3">
                   <a
-                    href={`${deployment?.url}/admin`}
+                    href={`https://${branch?.handle}.${deployDomain}/admin`}
                     className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                     target="_blank"
                   >
@@ -252,7 +240,7 @@ export default function Job() {
                         <Menu.Item>
                           {({ active }) => (
                             <a
-                              href={`${deployment?.url}/admin`}
+                              href={`https://${branch?.handle}.${deployDomain}/admin`}
                               target="_blank"
                               className={classNames(
                                 active ? "bg-gray-100" : "",
@@ -293,7 +281,7 @@ export default function Job() {
       </header>
       <main>
         <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 mt-10 space-y-6">
-          {deployment == null && (
+          {branch == null && (
             <div className="rounded-md bg-yellow-50 p-4">
               <div className="flex">
                 <div className="flex-shrink-0">

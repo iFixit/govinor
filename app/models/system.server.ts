@@ -1,3 +1,5 @@
+import os from "os";
+import prettyBytes from "pretty-bytes";
 import { Shell } from "~/lib/shell.server";
 
 interface SystemStats {
@@ -28,13 +30,6 @@ async function getAvailableDiskSpace(): Promise<string> {
 }
 
 async function getAvailableMemory(): Promise<string> {
-  const shell = new Shell();
-  const result = await shell.run({
-    type: "command",
-    command: "free -h | awk '/Mem:/ {print $7}'",
-  });
-  if (result == null) {
-    throw new Error("Failed to get available memory");
-  }
-  return result.output;
+  const availableBytes = os.freemem();
+  return prettyBytes(availableBytes);
 }

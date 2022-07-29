@@ -1,8 +1,12 @@
-import { GITHUB_WEBHOOK_SECRET } from "~/../config/env.server";
 import crypto from "crypto";
 import { ActionFunction, json } from "remix";
+import {
+  DEPLOYMENT_DOCKER_COMPOSE_ROOT_DIRECTORY,
+  GITHUB_WEBHOOK_SECRET,
+} from "~/../config/env.server";
 import { DeleteDeploymentJob } from "~/jobs/delete-deployment-job.server";
 import { PushJob } from "~/jobs/push-job.server";
+import { createBranch } from "~/models/branch.server";
 
 export const action: ActionFunction = async ({ request }) => {
   if (request.method !== "POST") {
@@ -27,19 +31,19 @@ export const action: ActionFunction = async ({ request }) => {
     const branch = payload.ref.replace("refs/heads/", "");
     response.branch = branch;
     response.pusher = payload.pusher.name;
+    await createBranch({
+      branchName: branch,
+      cloneUrl: payload.repository.clone_url,
+      dockerComposeDirectory: DEPLOYMENT_DOCKER_COMPOSE_ROOT_DIRECTORY,
+    });
     await PushJob.performLater({
       branch,
-      cloneUrl: payload.repository.clone_url,
     });
   } else if (event === "delete" && payload.ref_type === "branch") {
     const branch = payload.ref;
     response.branch = branch;
     await DeleteDeploymentJob.performLater({
       branch,
-      sender: {
-        login: payload.sender.login,
-        avatar_url: payload.sender.avatar_url,
-      },
     });
   }
   return json(response, 200);

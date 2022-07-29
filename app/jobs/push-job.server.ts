@@ -1,14 +1,13 @@
 import { Job } from "bullmq";
-import { DEPLOYMENT_DOCKER_COMPOSE_ROOT_DIRECTORY } from "~/../config/env.server";
 import { BaseJob } from "~/lib/jobs.server";
 import { JobProgressLogger } from "~/lib/logger";
+import { findBranch } from "~/models/branch.server";
 import { deploy } from "~/models/deployment.server";
 
 const queueName = "push";
 
 export interface PushJobPayload {
   branch: string;
-  cloneUrl: string;
 }
 
 export type PushJobResult = string;
@@ -17,16 +16,17 @@ export class PushJob extends BaseJob<PushJobPayload, PushJobResult> {
   readonly queueName = queueName;
 
   protected async perform(job: Job<PushJobPayload>) {
-    const branch = job.data.branch;
-    const cloneUrl = job.data.cloneUrl;
+    const branchName = job.data.branch;
     const logger = new JobProgressLogger(job);
+    const branch = await findBranch(branchName);
+    if (branch == null) {
+      throw new Error(`Branch "${branchName}" not found`);
+    }
     await deploy({
       branch,
-      cloneUrl,
-      rootDirectory: DEPLOYMENT_DOCKER_COMPOSE_ROOT_DIRECTORY,
       logger,
     });
-    return `Deployed branch "${branch}"`;
+    return `Deployed branch "${branchName}"`;
   }
 
   protected getJobName(payload: PushJobPayload): string {
