@@ -22,6 +22,7 @@ import { classNames } from "~/helpers/ui-helpers";
 import { requireAuthorization } from "~/lib/auth.server";
 import { commitSession, getSession } from "~/lib/session.server";
 import { GlobalNotification } from "./components/GlobalNotification";
+import { getFlashMessage, Message } from "./lib/flash";
 import styles from "./styles.css";
 
 export let links: LinksFunction = () => {
@@ -32,14 +33,14 @@ export const meta: MetaFunction = () => {
 };
 
 type LoaderData = {
-  globalMessage: string | null;
+  globalMessage: Message | null;
 };
 
 export let loader: LoaderFunction = async ({ request }) => {
   await requireAuthorization(request);
 
   const session = await getSession(request.headers.get("Cookie"));
-  const globalMessage: string | null = session.get("globalMessage") ?? null;
+  const globalMessage = getFlashMessage(session);
 
   return json<LoaderData>(
     { globalMessage },
@@ -65,7 +66,13 @@ export default function App() {
         <Layout>
           <Outlet />
         </Layout>
-        <GlobalNotification message={globalMessage} dismissAfter={2000} />
+        {globalMessage && (
+          <GlobalNotification
+            type={globalMessage.type}
+            message={globalMessage.text}
+            dismissAfter={2000}
+          />
+        )}
         <ScrollRestoration />
         <Scripts />
         {process.env.NODE_ENV === "development" && <LiveReload />}

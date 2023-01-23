@@ -4,10 +4,10 @@ import {
   DuplicateIcon,
   EyeIcon,
   PencilAltIcon,
+  TrashIcon,
 } from "@heroicons/react/solid";
 import {
   ActionFunction,
-  json,
   LoaderFunction,
   MetaFunction,
   redirect,
@@ -17,8 +17,11 @@ import React, { Fragment } from "react";
 import ReactDOM from "react-dom";
 import invariant from "tiny-invariant";
 import { DEPLOY_DOMAIN } from "~/../config/env.server";
+import { MessageType } from "~/components/GlobalNotification";
 import { classNames } from "~/helpers/ui-helpers";
+import { DeleteDeploymentJob } from "~/jobs/delete-deployment-job.server";
 import { PushJob } from "~/jobs/push-job.server";
+import { flashMessage } from "~/lib/flash";
 import { commitSession, getSession } from "~/lib/session.server";
 import { findAllBranches } from "~/models/branch.server";
 import { getSystemStats } from "~/models/system.server";
@@ -70,38 +73,62 @@ enum Intent {
 export const action: ActionFunction = async ({ request }) => {
   const formData = await request.formData();
   const intent = formData.get("intent");
+  const session = await getSession(request.headers.get("Cookie"));
   switch (intent) {
     case Intent.Redeploy: {
-      const branchName = formData.get("branch-name");
-      invariant(typeof branchName === "string", "branch-name is required");
+      const branchName = requireBranchName(formData);
       try {
         await PushJob.performLater({
           branch: branchName,
         });
-        const session = await getSession(request.headers.get("Cookie"));
-        session.flash("globalMessage", `Started a deploy for "${branchName}"`);
+        flashMessage(session, {
+          type: MessageType.Success,
+          text: `Started a deploy for "${branchName}"`,
+        });
         throw redirect("/", {
           headers: {
             "Set-Cookie": await commitSession(session),
           },
         });
       } catch (error) {
-        if (error instanceof Response) {
-          throw error;
-        }
-        if (error instanceof Error) {
-          return json<ActionData>({
-            error: error.message,
-          });
-        }
-        return json<ActionData>(
-          {
-            error: "unknown error",
+        const errorMessage = getErrorMessage(error);
+        flashMessage(session, {
+          type: MessageType.Error,
+          text: errorMessage,
+        });
+        throw redirect("/", {
+          headers: {
+            "Set-Cookie": await commitSession(session),
           },
-          {
-            status: 500,
-          }
-        );
+        });
+      }
+    }
+    case Intent.Delete: {
+      const branchName = requireBranchName(formData);
+      try {
+        await DeleteDeploymentJob.performLater({
+          branch: branchName,
+        });
+        flashMessage(session, {
+          type: MessageType.Success,
+          text: `Removing branch "${branchName}"`,
+        });
+        throw redirect("/", {
+          headers: {
+            "Set-Cookie": await commitSession(session),
+          },
+        });
+      } catch (error) {
+        const errorMessage = getErrorMessage(error);
+        flashMessage(session, {
+          type: MessageType.Error,
+          text: errorMessage,
+        });
+        throw redirect("/", {
+          headers: {
+            "Set-Cookie": await commitSession(session),
+          },
+        });
       }
     }
     default: {
@@ -109,6 +136,22 @@ export const action: ActionFunction = async ({ request }) => {
     }
   }
 };
+
+function requireBranchName(data: FormData): string {
+  const branchName = data.get("branch-name");
+  invariant(typeof branchName === "string", "branch-name is required");
+  return branchName;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Response) {
+    throw error;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return "unknown error";
+}
 
 export default function Index() {
   const { stats, branches, deployDomain } = useLoaderData<LoaderData>();
@@ -230,6 +273,25 @@ function BranchList({ branches, deployDomain }: BranchListProps) {
                           className="rounded-full inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                         >
                           Redeploy
+                        </button>
+                      </Form>
+                      <Form method="post" reloadDocument>
+                        <input
+                          type="hidden"
+                          name="branch-name"
+                          value={branch.name}
+                        />
+                        <button
+                          type="submit"
+                          name="intent"
+                          value={Intent.Delete}
+                          className="inline-flex items-center rounded-full border border-transparent bg-red-600 px-3.5 py-2 text-sm font-medium leading-4 text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                        >
+                          <TrashIcon
+                            className="h-4 w-4 text-blue-50 group-hover:text-gray-500"
+                            aria-hidden="true"
+                          />
+                          <span className="sr-only">Remove</span>
                         </button>
                       </Form>
                       {/* <DeploymentActions /> */}

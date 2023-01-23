@@ -1,13 +1,23 @@
 import { Transition } from "@headlessui/react";
-import { CheckCircleIcon } from "@heroicons/react/outline";
+import {
+  CheckCircleIcon,
+  ExclamationCircleIcon,
+} from "@heroicons/react/outline";
 import { XIcon } from "@heroicons/react/solid";
 import React from "react";
 
+export enum MessageType {
+  Success = "success",
+  Error = "error",
+}
+
 export type GlobalNotificationProps = {
-  message?: string | null;
+  type: MessageType;
+  message: string;
   dismissAfter?: number;
 };
 export function GlobalNotification({
+  type = MessageType.Success,
   message,
   dismissAfter,
 }: GlobalNotificationProps) {
@@ -50,10 +60,17 @@ export function GlobalNotification({
               <div className="p-4">
                 <div className="flex items-start">
                   <div className="flex-shrink-0">
-                    <CheckCircleIcon
-                      className="h-6 w-6 text-green-400"
-                      aria-hidden="true"
-                    />
+                    {type === MessageType.Success ? (
+                      <CheckCircleIcon
+                        className="h-6 w-6 text-green-400"
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <ExclamationCircleIcon
+                        className="h-6 w-6 text-red-400"
+                        aria-hidden="true"
+                      />
+                    )}
                   </div>
                   <div className="ml-3 w-0 flex-1 pt-0.5">
                     <p className="text-sm font-medium text-gray-900">
