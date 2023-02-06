@@ -30,15 +30,15 @@ export async function deploy({ logger, branch }: DeployOptions): Promise<void> {
   const deploymentExists = await doesDeploymentWithHandleExist(branch.handle);
   if (deploymentExists) {
     await info(
-      `Deployment for branch "${branch.handle}" already exists. Pulling latest changes to update.`
+      `Deployment for branch "${branch.name}" already exists. Pulling latest changes to update.`
     );
-    await shell.run(fetchLatestChangesCommand({ branchHandle: branch.handle }));
-    await shell.run(resetLocalBranchCommand({ branchHandle: branch.handle }));
+    await shell.run(fetchLatestChangesCommand({ branchName: branch.name }));
+    await shell.run(resetLocalBranchCommand({ branchName: branch.name }));
   } else {
-    await info(`Creating deployment assets for branch "${branch.handle}".`);
+    await info(`Creating deployment assets for branch "${branch.name}".`);
     await shell.run(
       cloneRepoCommand({
-        branch: branch.handle,
+        branchName: branch.name,
         cloneUrl: branch.cloneUrl,
         path: branch.handle,
       })
@@ -186,7 +186,7 @@ function dockerSystemPruneCommand(): SpawnCommand {
 }
 
 interface CloneRepoCommandOptions {
-  branch: string;
+  branchName: string;
   path: string;
   cloneUrl: string;
 }
@@ -195,7 +195,7 @@ function cloneRepoCommand(options: CloneRepoCommandOptions): SpawnCommand {
   return {
     type: "spawn-command",
     command: "git",
-    args: ["clone", "-b", options.branch, options.cloneUrl, options.path],
+    args: ["clone", "-b", options.branchName, options.cloneUrl, options.path],
     workingDirectory: DEPLOYMENTS_DIRECTORY,
   };
 }
@@ -278,29 +278,29 @@ function addCaddyRouteCommand({
 }
 
 interface ResetLocalBranchCommandOptions {
-  branchHandle: string;
+  branchName: string;
 }
 
 function resetLocalBranchCommand({
-  branchHandle,
+  branchName,
 }: ResetLocalBranchCommandOptions): SpawnCommand {
-  const repoDirectory = getRepoPath(branchHandle);
+  const repoDirectory = getRepoPath(branchName);
   return {
     type: "spawn-command",
     command: "git",
-    args: ["reset", "--hard", `origin/${branchHandle}`],
+    args: ["reset", "--hard", `origin/${branchName}`],
     workingDirectory: repoDirectory,
   };
 }
 
 interface FetchLatestChangesCommandOptions {
-  branchHandle: string;
+  branchName: string;
 }
 
 function fetchLatestChangesCommand({
-  branchHandle,
+  branchName,
 }: FetchLatestChangesCommandOptions): SpawnCommand {
-  const workingDirectory = getRepoPath(branchHandle);
+  const workingDirectory = getRepoPath(branchName);
   return {
     type: "spawn-command",
     command: "git",
