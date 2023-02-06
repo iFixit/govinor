@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { DEPLOYMENTS_DIRECTORY } from "~/../config/env.server";
 
 interface GetRepoDeployPathOptions {
@@ -25,6 +26,23 @@ function getRelativePath(path: string) {
   return path.replace(/\/$/g, "").replace(/^\//g, "");
 }
 
-export function getBranchHandle(branch: string) {
-  return branch.replace(/\//g, "-").replace(/_/g, "-");
+const MAX_DOMAIN_LENGTH = 63;
+const BRANCH_HASH_LENGTH = 8;
+
+export function getBranchHandle(branchName: string) {
+  const handle = branchName.replace(/\//g, "-").replace(/_/g, "-");
+  const hash = crypto
+    .createHash("sha1")
+    .update(branchName)
+    .digest("hex")
+    .substring(0, BRANCH_HASH_LENGTH);
+
+  if (handle.length <= MAX_DOMAIN_LENGTH) {
+    return handle;
+  }
+  const truncatedHandle = handle.substring(
+    0,
+    MAX_DOMAIN_LENGTH - BRANCH_HASH_LENGTH
+  );
+  return `${truncatedHandle}${hash}`;
 }
