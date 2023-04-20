@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createBranch } from "~/models/branch.server";
 import { DEPLOYMENT_DOCKER_COMPOSE_ROOT_DIRECTORY } from "~/../config/env.server";
 import { commitSession, getSession } from "~/lib/session.server";
+import { MessageType, flashMessage } from "~/lib/flash";
 
 export const action: ActionFunction = async ({ request }) => {
   const formData = await request.formData();
@@ -16,10 +17,10 @@ export const action: ActionFunction = async ({ request }) => {
       dockerComposeDirectory: DEPLOYMENT_DOCKER_COMPOSE_ROOT_DIRECTORY,
     });
     const session = await getSession(request.headers.get("Cookie"));
-    session.flash(
-      "globalMessage",
-      `Branch "${validatedInput.data.branchName}" created successfully`
-    );
+    flashMessage(session, {
+      type: MessageType.Success,
+      text: `Branch "${validatedInput.data.branchName}" created successfully`,
+    });
     const url = new URL(request.url);
     throw redirect(url.href, {
       headers: {

@@ -61,10 +61,6 @@ export let loader: LoaderFunction = async (): Promise<LoaderData> => {
   };
 };
 
-type ActionData = {
-  error: string;
-};
-
 enum Intent {
   Redeploy = "redeploy",
   Delete = "delete",
