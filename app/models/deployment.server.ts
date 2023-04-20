@@ -1,10 +1,15 @@
 import fs from "fs/promises";
 import getPort from "get-port";
-import { DEPLOYMENTS_DIRECTORY, DEPLOY_DOMAIN } from "~/../config/env.server";
+import {
+  DEPLOYMENTS_DIRECTORY,
+  DEPLOY_DOMAIN,
+  STRAPI_ADMIN_PASSWORD,
+} from "~/../config/env.server";
 import { getRepoDeployPath, getRepoPath } from "~/helpers/deployment-helpers";
 import { Logger } from "~/lib/logger";
 import { Shell, SpawnCommand } from "~/lib/shell.server";
 import { Branch } from "./branch.server";
+import { isPresent } from "~/helpers/application-helpers";
 
 interface BaseOptions {
   logger?: Logger;
@@ -64,8 +69,23 @@ export async function deploy({ logger, branch }: DeployOptions): Promise<void> {
     await info("No port found. Getting a new one..");
     port = await getPort();
     await shell.run(
-      addPortToEnvFileCommand({
-        port,
+      addStrapiEnvVariableCommand({
+        variable: {
+          name: "HOST_PORT",
+          value: port,
+        },
+        branchHandle: branch.handle,
+        rootDirectory: branch.dockerComposeDirectory,
+      })
+    );
+  }
+  if (isPresent(STRAPI_ADMIN_PASSWORD)) {
+    await shell.run(
+      addStrapiEnvVariableCommand({
+        variable: {
+          name: "ADMIN_PASS",
+          value: STRAPI_ADMIN_PASSWORD,
+        },
         branchHandle: branch.handle,
         rootDirectory: branch.dockerComposeDirectory,
       })
@@ -237,24 +257,27 @@ function addEnvFileCommand({
   };
 }
 
-interface AddPortToEnvFileCommandOptions {
-  port: number;
+interface AddStrapiEnvVariableCommandOptions {
+  variable: {
+    name: string;
+    value: string | number;
+  };
   branchHandle: string;
   rootDirectory?: string;
 }
 
-function addPortToEnvFileCommand({
-  port,
+function addStrapiEnvVariableCommand({
+  variable,
   branchHandle,
   rootDirectory,
-}: AddPortToEnvFileCommandOptions): SpawnCommand {
+}: AddStrapiEnvVariableCommandOptions): SpawnCommand {
   const workingDirectory = getRepoDeployPath({
     rootDirectory,
     branchHandle,
   });
   return {
     type: "spawn-command",
-    command: `echo "\nHOST_PORT=${port}" >> .env`,
+    command: `echo "\n${variable.name}=${variable.value}" >> .env`,
     useShellSyntax: true,
     workingDirectory,
   };

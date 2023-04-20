@@ -24,3 +24,5 @@ invariant(
   "GITHUB_WEBHOOK_SECRET is required"
 );
 export const GITHUB_WEBHOOK_SECRET = process.env.GITHUB_WEBHOOK_SECRET;
+
+export const STRAPI_ADMIN_PASSWORD = process.env.STRAPI_ADMIN_PASSWORD;
