@@ -26,3 +26,6 @@ invariant(
 export const GITHUB_WEBHOOK_SECRET = process.env.GITHUB_WEBHOOK_SECRET;
 
 export const STRAPI_ADMIN_PASSWORD = process.env.STRAPI_ADMIN_PASSWORD;
+
+export const STRAPI_TRANSFER_TOKEN_SALT =
+  process.env.STRAPI_TRANSFER_TOKEN_SALT;
