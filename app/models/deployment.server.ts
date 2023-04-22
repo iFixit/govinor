@@ -4,6 +4,7 @@ import {
   DEPLOYMENTS_DIRECTORY,
   DEPLOY_DOMAIN,
   STRAPI_ADMIN_PASSWORD,
+  STRAPI_TRANSFER_TOKEN_SALT,
 } from "~/../config/env.server";
 import { getRepoDeployPath, getRepoPath } from "~/helpers/deployment-helpers";
 import { Logger } from "~/lib/logger";
@@ -85,6 +86,18 @@ export async function deploy({ logger, branch }: DeployOptions): Promise<void> {
         variable: {
           name: "ADMIN_PASS",
           value: STRAPI_ADMIN_PASSWORD,
+        },
+        branchHandle: branch.handle,
+        rootDirectory: branch.dockerComposeDirectory,
+      })
+    );
+  }
+  if (isPresent(STRAPI_TRANSFER_TOKEN_SALT)) {
+    await shell.run(
+      addStrapiEnvVariableCommand({
+        variable: {
+          name: "TRANSFER_TOKEN_SALT",
+          value: STRAPI_TRANSFER_TOKEN_SALT,
         },
         branchHandle: branch.handle,
         rootDirectory: branch.dockerComposeDirectory,
