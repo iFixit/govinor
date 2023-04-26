@@ -29,3 +29,6 @@ export const STRAPI_ADMIN_PASSWORD = process.env.STRAPI_ADMIN_PASSWORD;
 
 export const STRAPI_TRANSFER_TOKEN_SALT =
   process.env.STRAPI_TRANSFER_TOKEN_SALT;
+
+export const STRAPI_ADMIN_BACKEND_URL =
+  process.env.STRAPI_ADMIN_BACKEND_URL ?? "";

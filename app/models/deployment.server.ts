@@ -3,6 +3,7 @@ import getPort from "get-port";
 import {
   DEPLOYMENTS_DIRECTORY,
   DEPLOY_DOMAIN,
+  STRAPI_ADMIN_BACKEND_URL,
   STRAPI_ADMIN_PASSWORD,
   STRAPI_TRANSFER_TOKEN_SALT,
 } from "~/../config/env.server";
@@ -104,6 +105,16 @@ export async function deploy({ logger, branch }: DeployOptions): Promise<void> {
       })
     );
   }
+  await shell.run(
+    addStrapiEnvVariableCommand({
+      variable: {
+        name: "STRAPI_ADMIN_BACKEND_URL",
+        value: STRAPI_ADMIN_BACKEND_URL,
+      },
+      branchHandle: branch.handle,
+      rootDirectory: branch.dockerComposeDirectory,
+    })
+  );
   await info("Starting deployment..");
   await shell.run(
     dockerComposeUpCommand({
