@@ -7,11 +7,12 @@ import {
   STRAPI_ADMIN_PASSWORD,
   STRAPI_TRANSFER_TOKEN_SALT,
 } from "~/../config/env.server";
+import { isPresent } from "~/helpers/application-helpers";
 import { getRepoDeployPath, getRepoPath } from "~/helpers/deployment-helpers";
 import { Logger } from "~/lib/logger";
 import { Shell, SpawnCommand } from "~/lib/shell.server";
 import { Branch } from "./branch.server";
-import { isPresent } from "~/helpers/application-helpers";
+import { cloneRepoCommand } from "./commands/cloneRepo.server";
 
 interface BaseOptions {
   logger?: Logger;
@@ -226,21 +227,6 @@ function dockerSystemPruneCommand(): SpawnCommand {
     type: "spawn-command",
     command: "docker",
     args: ["system", "prune", "-a", "--volumes", "-f"],
-  };
-}
-
-interface CloneRepoCommandOptions {
-  branchName: string;
-  path: string;
-  cloneUrl: string;
-}
-
-function cloneRepoCommand(options: CloneRepoCommandOptions): SpawnCommand {
-  return {
-    type: "spawn-command",
-    command: "git",
-    args: ["clone", "-b", options.branchName, options.cloneUrl, options.path],
-    workingDirectory: DEPLOYMENTS_DIRECTORY,
   };
 }
 

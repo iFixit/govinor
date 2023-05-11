@@ -6,7 +6,7 @@ export const DEPLOYMENTS_DIRECTORY =
 
 /*
   This represents the directory where the docker compose of Strapi is located.
-  It is hardcoded to "backend" because for now we only would server Strapi from
+  It is hardcoded to "backend" because for now we only would serve Strapi from
   react-commerce repo. Ideally this should be configurable from the dashboard and
   on a per project basis (much like "Root Directory" in Vercel project settings).
 */
