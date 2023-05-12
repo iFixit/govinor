@@ -6,6 +6,6 @@ export class ConsoleLogger extends Logger {
   }
 
   async error(message: string): Promise<void> {
-    console.error(`ERROR: ${message}`);
+    console.error(message);
   }
 }

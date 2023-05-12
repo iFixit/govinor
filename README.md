@@ -136,7 +136,7 @@ If Govinor runs out of memory, to scale it up follow the following steps:
    ./scripts/init-caddy.sh
    ```
 
-### Debug
+### Troubleshooting
 
 For convenience here a few useful commands for diagnosing problems:
 
@@ -155,4 +155,7 @@ sudo systemctl daemon-reload
 
 # View the process running govinor
 lsof -i tcp:3000
+
+# View what routes are exposed by govinor - shows the Caddy config
+curl -X GET http://localhost:2019/config/ | jq
 ```
