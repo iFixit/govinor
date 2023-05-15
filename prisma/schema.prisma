@@ -11,8 +11,21 @@ datasource db {
 }
 
 model Branch {
-  name                   String @id
-  handle                 String @unique
+  name                   String      @id
+  handle                 String      @unique
   cloneUrl               String
   dockerComposeDirectory String
+  repository             Repository? @relation(fields: [repositoryId], references: [id])
+  repositoryId           String?
+}
+
+model Repository {
+  id                     String   @id @default(uuid())
+  fullName               String   @unique
+  owner                  String
+  name                   String
+  dockerComposeDirectory String
+  branches               Branch[]
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 }
