@@ -2,8 +2,8 @@ import { Transition } from "@headlessui/react";
 import {
   CheckCircleIcon,
   ExclamationCircleIcon,
-} from "@heroicons/react/outline";
-import { XIcon } from "@heroicons/react/solid";
+} from "@heroicons/react/24/outline";
+import { XMarkIcon } from "@heroicons/react/24/solid";
 import React from "react";
 
 export enum MessageType {
@@ -16,6 +16,7 @@ export type GlobalNotificationProps = {
   message: string;
   dismissAfter?: number;
 };
+
 export function GlobalNotification({
   type = MessageType.Success,
   message,
@@ -42,7 +43,7 @@ export function GlobalNotification({
       {/* Global notification live region, render this permanently at the end of the document */}
       <div
         aria-live="assertive"
-        className="fixed inset-0 flex items-end px-4 py-6 pointer-events-none sm:p-6 sm:items-start"
+        className="fixed inset-0 z-50 flex items-end px-4 py-6 pointer-events-none sm:p-6 sm:items-start"
       >
         <div className="w-full flex flex-col items-center space-y-4 sm:items-end">
           {/* Notification panel, dynamically insert this into the live region when it needs to be displayed */}
@@ -86,7 +87,7 @@ export function GlobalNotification({
                       }}
                     >
                       <span className="sr-only">Close</span>
-                      <XIcon className="h-5 w-5" aria-hidden="true" />
+                      <XMarkIcon className="h-5 w-5" aria-hidden="true" />
                     </button>
                   </div>
                 </div>

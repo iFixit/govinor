@@ -2,6 +2,10 @@ import { Prisma } from "@prisma/client";
 import { getBranchHandle } from "~/helpers/deployment-helpers";
 import { prisma } from "~/lib/db.server";
 
+export type BranchItem = NonNullable<
+  Awaited<ReturnType<typeof findAllBranches>>
+>[number];
+
 export async function findAllBranches() {
   return prisma.branch.findMany({
     take: 250,
@@ -10,6 +14,11 @@ export async function findAllBranches() {
       handle: true,
       cloneUrl: true,
       dockerComposeDirectory: true,
+      repository: {
+        select: {
+          fullName: true,
+        },
+      },
     },
     orderBy: {
       name: Prisma.SortOrder.asc,

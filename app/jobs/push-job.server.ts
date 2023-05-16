@@ -2,7 +2,7 @@ import { Job } from "bullmq";
 import { BaseJob } from "~/lib/jobs.server";
 import { JobProgressLogger } from "~/lib/logger";
 import { findBranch } from "~/models/branch.server";
-import { deploy } from "~/models/deployment.server";
+import { deploy } from "~/models/commands/deploy.server";
 
 const queueName = "push";
 

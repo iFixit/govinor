@@ -2,7 +2,7 @@ import { Job } from "bullmq";
 import { BaseJob } from "~/lib/jobs.server";
 import { JobProgressLogger } from "~/lib/logger";
 import { deleteBranch, findBranch } from "~/models/branch.server";
-import { destroy } from "~/models/deployment.server";
+import { destroy } from "~/models/commands/deploy.server";
 
 const queueName = "delete_deployment";
 

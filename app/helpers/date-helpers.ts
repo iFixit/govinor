@@ -1,17 +1,19 @@
 import dayjs from "dayjs";
 import calendar from "dayjs/plugin/calendar";
 import duration from "dayjs/plugin/duration";
+import relativeTime from "dayjs/plugin/relativeTime";
 
 dayjs.extend(calendar);
 dayjs.extend(duration);
+dayjs.extend(relativeTime);
 
 export function getHumanReadableDateTime(date: dayjs.Dayjs) {
   return date.calendar(null, {
-    sameDay: "[Today at] H:mm:ss",
-    nextDay: "[Tomorrow at] H:mm:ss",
+    sameDay: "[today at] H:mm:ss",
+    nextDay: "[tomorrow at] H:mm:ss",
     nextWeek: "dddd [at] H:mm:ss",
-    lastDay: "[Yesterday at] H:mm:ss",
-    lastWeek: "[Last] dddd [at] H:mm:ss",
+    lastDay: "[yesterday at] H:mm:ss",
+    lastWeek: "[last] dddd [at] H:mm:ss",
     sameElse: "DD/MM/YYYY [at] H:mm:ss",
   });
 }
