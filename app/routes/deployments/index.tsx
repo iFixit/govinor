@@ -28,7 +28,7 @@ export default function DeploymentsPage() {
           Deployments
         </h2>
         <table className="mt-6 w-full text-left">
-          <colgroup>
+          <colgroup className="">
             <col className="w-full sm:w-3/12" />
             <col className="lg:w-2/12" />
             <col className="lg:w-1/12" />
@@ -101,13 +101,13 @@ function DeploymentTableRow({ deployment }: DeploymentTableRowProps) {
       <td className="py-4 pl-4 pr-8 sm:pl-6 lg:pl-8">
         <Link
           to={deployment.id ?? "#"}
-          className="truncate text-sm font-medium leading-6 text-white"
+          className="text-sm font-medium leading-6 text-white"
         >
           {deployment.name}
           <span className="absolute inset-0" />
         </Link>
       </td>
-      <td className="hidden py-4 pl-0 pr-4 sm:table-cell sm:pr-8">
+      <td className="hidden py-4 pl-0 pr-4 sm:table-cell sm:pr-8 whitespace-nowrap">
         <div className="flex gap-x-3">
           <div className="text-sm leading-6 text-gray-400">
             {getHumanReadableDateTime(timestamp)}
