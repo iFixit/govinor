@@ -4,8 +4,9 @@
   "description": "A platform to deploy and preview docker containers.",
   "license": "MIT",
   "scripts": {
-    "build": "npm run build:css && remix build",
+    "build": "npm run build:prisma && npm run build:css && remix build",
     "build:css": "tailwindcss -o ./app/styles.css",
+    "build:prisma": "prisma generate",
     "dev": "concurrently -p \"[{name}]\" -n \"remix,workers,tailwind,redis\" -c \"blue.bold,magenta.bold,green.bold,red.bold\" \"npm:dev:remix\" \"npm:dev:workers\" \"npm:dev:tailwind\" \"npm:dev:redis\"",
     "dev:remix": "cross-env NODE_ENV=development remix dev",
     "dev:tailwind": "tailwindcss -o ./app/styles.css --watch",
