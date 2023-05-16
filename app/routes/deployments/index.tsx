@@ -31,10 +31,11 @@ export default function DeploymentsPage() {
           <table className="mt-6 w-full whitespace-nowrap text-left">
             <colgroup>
               <col className="w-full sm:w-4/12" />
+              <col className="lg:w-1/12" />
+              <col className="lg:w-1/12" />
+              <col className="lg:w-1/12" />
+              <col className="lg:w-1/12" />
               <col className="lg:w-4/12" />
-              <col className="lg:w-2/12" />
-              <col className="lg:w-1/12" />
-              <col className="lg:w-1/12" />
             </colgroup>
             <thead className="border-b border-white/10 text-sm leading-6 text-white">
               <tr>

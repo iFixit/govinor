@@ -219,9 +219,9 @@ export function DeploymentHeader({
           </div>
         </div>
       </div>
-      <div className="mt-5 flex lg:ml-4 lg:mt-0">
+      <div className="mt-5 flex lg:ml-4 lg:mt-0 space-x-3">
         {shouldViewLink && (
-          <span className="ml-3">
+          <span className="">
             <a
               href={branchPreviewUrl({ handle: branch.handle, deployDomain })}
               target="_blank"
@@ -244,7 +244,7 @@ interface DeployButtonProps {
 
 function DeployButton({ disabled }: DeployButtonProps) {
   return (
-    <Form method="post" className="sm:ml-3">
+    <Form method="post" className="">
       <button
         type="submit"
         name="_action"
