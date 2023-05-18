@@ -20,6 +20,10 @@ import { GlobalNotification } from "./components/global-notification";
 import { DefaultLayout } from "./components/layout/default-layout";
 import { Message, getFlashMessage } from "./lib/flash";
 import styles from "./styles.css";
+import {
+  RepositoryListItem,
+  findAllRepositories,
+} from "./models/repository.server";
 
 export let links: LinksFunction = () => {
   return [{ rel: "stylesheet", href: styles }];
@@ -30,6 +34,7 @@ export const meta: MetaFunction = () => {
 
 type LoaderData = {
   globalMessage: Message | null;
+  repositories: RepositoryListItem[];
 };
 
 export let loader: LoaderFunction = async ({ request }) => {
@@ -38,8 +43,10 @@ export let loader: LoaderFunction = async ({ request }) => {
   const session = await getSession(request.headers.get("Cookie"));
   const globalMessage = getFlashMessage(session);
 
+  const repositories = await findAllRepositories();
+
   return json<LoaderData>(
-    { globalMessage },
+    { globalMessage, repositories },
     {
       headers: {
         "Set-Cookie": await commitSession(session),
@@ -49,7 +56,7 @@ export let loader: LoaderFunction = async ({ request }) => {
 };
 
 export default function App() {
-  const { globalMessage } = useLoaderData<LoaderData>();
+  const { globalMessage, repositories } = useLoaderData<LoaderData>();
   return (
     <html lang="en" className="h-full bg-gray-900">
       <head>
@@ -59,14 +66,14 @@ export default function App() {
         <Links />
       </head>
       <body className="h-full">
-        <DefaultLayout>
+        <DefaultLayout repositories={repositories}>
           <Outlet />
         </DefaultLayout>
         {globalMessage && (
           <GlobalNotification
             type={globalMessage.type}
             message={globalMessage.text}
-            dismissAfter={2000}
+            dismissAfter={5000}
           />
         )}
         <ScrollRestoration />
@@ -86,14 +93,32 @@ export const ErrorBoundary: ErrorBoundaryComponent = ({ error }) => {
         <Meta />
         <Links />
       </head>
-      <body>
-        <DefaultLayout>
-          <div className="bg-red-100 w-[500px] py-10 mx-auto text-center">
-            <h1 className="text-4xl leading-tight font-bold">
-              Oh no! The app crashed :(
+      <body className="h-full">
+        <main className="grid min-h-full place-items-center px-6 py-24 sm:py-32 lg:px-8">
+          <div className="text-center">
+            <p className="text-base font-semibold text-indigo-600">500</p>
+            <h1 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-5xl">
+              Ops, something not working 😬
             </h1>
+            <p className="mt-6 text-base leading-7 text-gray-500">
+              Don't panic. Please try to reload the page.
+            </p>
+            <div className="mt-10 flex items-center justify-center gap-x-6">
+              <button
+                className="rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                onClick={() => window.location.reload()}
+              >
+                Reload page
+              </button>
+              <a
+                href="/"
+                className="text-sm font-semibold text-white hover:underline"
+              >
+                Take me back home
+              </a>
+            </div>
           </div>
-        </DefaultLayout>
+        </main>
         <Scripts />
       </body>
     </html>

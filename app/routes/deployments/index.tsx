@@ -25,7 +25,7 @@ export default function DeploymentsPage() {
     <main className="">
       <div className="pt-11">
         <h2 className="px-4 text-base font-semibold leading-7 text-white sm:px-6 lg:px-8">
-          Deployments
+          Activities
         </h2>
         <table className="mt-6 w-full text-left">
           <colgroup className="">
