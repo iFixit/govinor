@@ -1,14 +1,15 @@
-import { NavLink } from "@remix-run/react";
+import { Link, NavLink } from "@remix-run/react";
 import { classNames } from "~/helpers/ui-helpers";
 import { navigation } from "./navigation";
+import { PlusIcon } from "@heroicons/react/20/solid";
+import { newRepositoryPath, repositoryPath } from "~/helpers/path-helpers";
+import type { RepositoryListItem } from "~/models/repository.server";
 
-const teams = [
-  { id: 1, name: "Planetaria", href: "#", initial: "P", current: false },
-  { id: 2, name: "Protocol", href: "#", initial: "P", current: false },
-  { id: 3, name: "Tailwind Labs", href: "#", initial: "T", current: false },
-];
+interface DesktopSidebarProps {
+  repositories: RepositoryListItem[];
+}
 
-export function DesktopSidebar() {
+export function DesktopSidebar({ repositories }: DesktopSidebarProps) {
   return (
     <div className="hidden xl:fixed xl:inset-y-0 xl:z-50 xl:flex xl:w-72 xl:flex-col">
       {/* Sidebar component, swap this element with another sidebar if you like */}
@@ -45,31 +46,46 @@ export function DesktopSidebar() {
                 ))}
               </ul>
             </li>
-            {/* <li>
-              <div className="text-xs font-semibold leading-6 text-gray-400">
-                Repositories
+            <li>
+              <div className="flex justify-between">
+                <div className="text-xs font-semibold leading-6 text-gray-400">
+                  Repositories
+                </div>
+                <Link
+                  to={newRepositoryPath()}
+                  className="rounded hover:bg-white/10 border border-white/5 px-1 py-1 text-sm font-semibold text-gray-500 shadow-sm transition-colors"
+                >
+                  <span className="sr-only">Create new repo</span>
+                  <PlusIcon className="h-5 w-5" aria-hidden="true" />
+                </Link>
               </div>
-              <ul role="list" className="-mx-2 mt-2 space-y-1">
-                {teams.map((team) => (
-                  <li key={team.name}>
-                    <a
-                      href={team.href}
-                      className={classNames(
-                        team.current
-                          ? "bg-gray-800 text-white"
-                          : "text-gray-400 hover:text-white hover:bg-gray-800",
-                        "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold"
-                      )}
-                    >
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-gray-700 bg-gray-800 text-[0.625rem] font-medium text-gray-400 group-hover:text-white">
-                        {team.initial}
-                      </span>
-                      <span className="truncate">{team.name}</span>
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </li> */}
+              {repositories.length > 0 ? (
+                <ul role="list" className="-mx-2 mt-2 space-y-1">
+                  {repositories.map((repo) => (
+                    <li key={repo.id}>
+                      <NavLink
+                        to={repositoryPath(repo)}
+                        className={({ isActive }) =>
+                          classNames(
+                            isActive
+                              ? "bg-gray-800 text-white"
+                              : "text-gray-400 hover:text-white hover:bg-gray-800",
+                            "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold"
+                          )
+                        }
+                      >
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-gray-700 bg-gray-800 text-[0.625rem] font-medium text-gray-400 group-hover:text-white">
+                          {repo.name.slice(0, 1)}
+                        </span>
+                        <span className="truncate">{repo.fullName}</span>
+                      </NavLink>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-gray-600 text-xs mt-6">No repositories</p>
+              )}
+            </li>
           </ul>
         </nav>
       </div>

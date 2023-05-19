@@ -1,22 +1,24 @@
 import { Dialog, Transition } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
-import { NavLink } from "@remix-run/react";
+import { Link, NavLink } from "@remix-run/react";
 import { Fragment } from "react";
+import { newRepositoryPath, repositoryPath } from "~/helpers/path-helpers";
 import { classNames } from "~/helpers/ui-helpers";
+import { RepositoryListItem } from "~/models/repository.server";
 import { navigation } from "./navigation";
-
-const teams = [
-  { id: 1, name: "Planetaria", href: "#", initial: "P", current: false },
-  { id: 2, name: "Protocol", href: "#", initial: "P", current: false },
-  { id: 3, name: "Tailwind Labs", href: "#", initial: "T", current: false },
-];
+import { PlusIcon } from "@heroicons/react/20/solid";
 
 interface MobileSidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  repositories: RepositoryListItem[];
 }
 
-export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
+export function MobileSidebar({
+  isOpen,
+  onClose,
+  repositories,
+}: MobileSidebarProps) {
   return (
     <Transition.Root show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50 xl:hidden" onClose={onClose}>
@@ -66,7 +68,6 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                   </button>
                 </div>
               </Transition.Child>
-              {/* Sidebar component, swap this element with another sidebar if you like */}
               <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-gray-900 px-6 ring-1 ring-white/10">
                 <div className="flex h-16 shrink-0 items-center">
                   <p className="text-2xl text-white font-bold tracking-tight">
@@ -89,6 +90,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                                   "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold"
                                 )
                               }
+                              onClick={onClose}
                             >
                               <item.icon
                                 className="h-6 w-6 shrink-0"
@@ -100,31 +102,44 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                         ))}
                       </ul>
                     </li>
-                    {/* <li>
-                      <div className="text-xs font-semibold leading-6 text-gray-400">
-                        Repositories
+                    <li>
+                      <div className="flex justify-between">
+                        <div className="text-xs font-semibold leading-6 text-gray-400">
+                          Repositories
+                        </div>
+                        <Link
+                          to={newRepositoryPath()}
+                          className="rounded hover:bg-white/10 border border-white/5 px-1 py-1 text-sm font-semibold text-gray-500 shadow-sm transition-colors"
+                          onClick={onClose}
+                        >
+                          <span className="sr-only">Create new repo</span>
+                          <PlusIcon className="h-5 w-5" aria-hidden="true" />
+                        </Link>
                       </div>
                       <ul role="list" className="-mx-2 mt-2 space-y-1">
-                        {teams.map((team) => (
-                          <li key={team.name}>
-                            <a
-                              href={team.href}
-                              className={classNames(
-                                team.current
-                                  ? "bg-gray-800 text-white"
-                                  : "text-gray-400 hover:text-white hover:bg-gray-800",
-                                "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold"
-                              )}
+                        {repositories.map((repo) => (
+                          <li key={repo.name}>
+                            <NavLink
+                              to={repositoryPath(repo)}
+                              className={({ isActive }) =>
+                                classNames(
+                                  isActive
+                                    ? "bg-gray-800 text-white"
+                                    : "text-gray-400 hover:text-white hover:bg-gray-800",
+                                  "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold"
+                                )
+                              }
+                              onClick={onClose}
                             >
                               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-gray-700 bg-gray-800 text-[0.625rem] font-medium text-gray-400 group-hover:text-white">
-                                {team.initial}
+                                {repo.name.slice(0, 1)}
                               </span>
-                              <span className="truncate">{team.name}</span>
-                            </a>
+                              <span className="truncate">{repo.fullName}</span>
+                            </NavLink>
                           </li>
                         ))}
                       </ul>
-                    </li> */}
+                    </li>
                   </ul>
                 </nav>
               </div>

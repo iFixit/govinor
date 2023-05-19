@@ -16,6 +16,7 @@ export interface SpawnCommand {
   args?: string[] | undefined;
   workingDirectory?: string;
   useShellSyntax?: boolean;
+  env?: NodeJS.ProcessEnv;
 }
 
 export interface MacroCommand {
@@ -73,9 +74,10 @@ export class Shell {
 
   private spawn(command: SpawnCommand): Promise<void> {
     return new Promise((resolve, reject) => {
-      const commandProcess = child.spawn(command.command, command.args, {
+      const commandProcess = child.spawn(command.command, command.args ?? [], {
         cwd: command.workingDirectory,
         shell: command.useShellSyntax,
+        env: command.env,
       });
       commandProcess.stdout.on("data", (data) => {
         this.logger?.info(this.convertInfoToMessage(data));
