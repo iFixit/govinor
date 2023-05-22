@@ -1,18 +1,11 @@
 import { Prisma } from "@prisma/client";
-import fs from "fs/promises";
-import path from "path";
 import { z } from "zod";
 import {
-  createDirectory,
-  deleteDirectory,
-  repositorySSHKeyDirectory,
-} from "~/helpers/fs-helpers";
+  createRepositorySSHKey,
+  deleteSSHKeys,
+  getRepositorySSHPublicKey,
+} from "~/helpers/repository-helpers";
 import { prisma } from "~/lib/db.server";
-import { ConsoleLogger } from "~/lib/logger";
-import { Shell } from "~/lib/shell.server";
-import { createSSHKeyCommand } from "./commands/createSSHKey.server";
-
-const SSH_KEY_NAME = "ssh-key";
 
 export type RepositoryListItem = NonNullable<
   Awaited<ReturnType<typeof findAllRepositories>>
@@ -41,27 +34,11 @@ export async function findRepository(where: Prisma.RepositoryWhereUniqueInput) {
     where,
   });
   if (repo == null) return null;
-  const deployKey = await getRepoPublicKey(repo.owner, repo.name);
+  const deployKey = await getRepositorySSHPublicKey(repo.owner, repo.name);
   return {
     ...repo,
     deployKey,
   };
-}
-
-async function getRepoPublicKey(
-  repoOwner: string,
-  repoName: string
-): Promise<string | null> {
-  const keysDirectory = repositorySSHKeyDirectory(repoOwner, repoName);
-  const publicKeyPath = path.join(keysDirectory, `${SSH_KEY_NAME}.pub`);
-
-  try {
-    const data = await fs.readFile(publicKeyPath, "utf-8");
-    return data;
-  } catch (err) {
-    console.error(`Error reading key: ${err}`);
-    return null;
-  }
 }
 
 export const CreateRepositoryInputSchema = z.object({
@@ -85,28 +62,14 @@ export async function createRepository(input: CreateRepositoryInput) {
     },
   });
   await createRepositorySSHKey(repository.owner, repository.name);
-  const deployKey = await getRepoPublicKey(repository.owner, repository.name);
+  const deployKey = await getRepositorySSHPublicKey(
+    repository.owner,
+    repository.name
+  );
   return {
     ...repository,
     deployKey,
   };
-}
-
-async function createRepositorySSHKey(repoOwner: string, repoName: string) {
-  const keyDir = repositorySSHKeyDirectory(repoOwner, repoName);
-
-  await createDirectory(keyDir);
-
-  const logger = new ConsoleLogger();
-  const shell = new Shell(logger);
-
-  await shell.run(
-    createSSHKeyCommand({
-      keyDir,
-      keyName: SSH_KEY_NAME,
-      keyComment: `github deploy key for ${repoOwner}/${repoName}`,
-    })
-  );
 }
 
 export const UpdateRepositoryInputSchema = z.object({
@@ -144,9 +107,4 @@ export async function deleteRepository(
   });
   await deleteSSHKeys(deletedRepo.owner, deletedRepo.name);
   return deletedRepo;
-}
-
-async function deleteSSHKeys(repoOwner: string, repoName: string) {
-  const keysDirectory = repositorySSHKeyDirectory(repoOwner, repoName);
-  await deleteDirectory(keysDirectory);
 }

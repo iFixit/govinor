@@ -1,12 +1,10 @@
 import { ActionFunction, LoaderFunction, redirect } from "@remix-run/node";
 import { Form, useLoaderData } from "@remix-run/react";
-import snakeCase from "lodash/snakeCase";
-import { sshKeysDirectory } from "~/helpers/fs-helpers";
 import { MessageType, flashMessage } from "~/lib/flash";
 import { ConsoleLogger } from "~/lib/logger";
 import { commitSession, getSession } from "~/lib/session.server";
 import { Shell } from "~/lib/shell.server";
-import { createSSHKeyCommand } from "~/models/commands/createSSHKey.server";
+import { clonePrivateRepo } from "~/models/commands/clonePrivateRepo.server";
 
 interface LoaderData {}
 
@@ -34,12 +32,14 @@ export const action: ActionFunction = async ({ request, params }) => {
   const logger = new ConsoleLogger();
   const shell = new Shell(logger);
 
-  const keyName = snakeCase(repo);
+  const [repoOwner, repoName] = repo.split("/");
+
   await shell.run(
-    createSSHKeyCommand({
-      keyDir: sshKeysDirectory(),
-      keyName,
-      keyComment: `github deploy key for ${repo}`,
+    clonePrivateRepo({
+      repoOwner,
+      repoName,
+      branchName: "main",
+      path: "main",
     })
   );
   return null;
@@ -64,13 +64,14 @@ export default function DemoPage() {
               id="repo"
               className="flex-1 border-0 bg-transparent py-1.5 text-white focus:ring-0 sm:text-sm sm:leading-6"
               placeholder="iFixit/ifixit"
+              defaultValue="dhmacs/fjsp-solver"
             />
           </div>
           <button
             type="submit"
             className="mt-4 rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
           >
-            Generate keys
+            Clone Repo
           </button>
         </Form>
       </main>

@@ -1,14 +1,6 @@
 import * as fs from "fs/promises";
 import * as path from "path";
 
-export function sshKeysDirectory(): string {
-  return path.join(storageDirectory(), "ssh-keys");
-}
-
-export function repositorySSHKeyDirectory(owner: string, name: string): string {
-  return path.join(sshKeysDirectory(), owner, name);
-}
-
 export function storageDirectory(): string {
   return path.join(process.cwd(), "storage");
 }

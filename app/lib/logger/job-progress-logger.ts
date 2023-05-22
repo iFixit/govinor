@@ -18,7 +18,7 @@ export class JobProgressLogger extends Logger {
   }
 
   async error(message: string): Promise<void> {
-    await this.appendMessage(`ERROR: ${message}`);
+    await this.appendMessage(message);
   }
 
   static isProgressLog(
