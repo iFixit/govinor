@@ -46,6 +46,7 @@ type CreateBranchInput = {
   branchName: string;
   cloneUrl: string;
   dockerComposeDirectory: string;
+  repositoryId: string;
 };
 
 export async function createBranch(input: CreateBranchInput) {
@@ -59,10 +60,12 @@ export async function createBranch(input: CreateBranchInput) {
       handle: branchHandle,
       cloneUrl: input.cloneUrl,
       dockerComposeDirectory: input.dockerComposeDirectory,
+      repositoryId: input.repositoryId,
     },
     update: {
       cloneUrl: input.cloneUrl,
       dockerComposeDirectory: input.dockerComposeDirectory,
+      repositoryId: input.repositoryId,
     },
     select: {
       name: true,

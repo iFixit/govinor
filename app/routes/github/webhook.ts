@@ -8,6 +8,7 @@ import { DeleteDeploymentJob } from "~/jobs/delete-deployment-job.server";
 import { PushJob } from "~/jobs/push-job.server";
 import { createBranch } from "~/models/branch.server";
 import { z } from "zod";
+import { findRepository } from "~/models/repository.server";
 
 export const action: ActionFunction = async ({ request }) => {
   if (request.method !== "POST") {
@@ -26,10 +27,18 @@ export const action: ActionFunction = async ({ request }) => {
     const branch = payload.ref.replace("refs/heads/", "");
     response.branch = branch;
     response.pusher = payload.pusher.name;
+    const repository = await findRepository({
+      fullName: payload.repository.full_name,
+    });
+    if (repository == null) {
+      throw json({ message: "Repository not found" }, 404);
+    }
     await createBranch({
       branchName: branch,
       cloneUrl: payload.repository.clone_url,
-      dockerComposeDirectory: DEPLOYMENT_DOCKER_COMPOSE_ROOT_DIRECTORY,
+      // dockerComposeDirectory: DEPLOYMENT_DOCKER_COMPOSE_ROOT_DIRECTORY,
+      dockerComposeDirectory: repository.dockerComposeDirectory,
+      repositoryId: repository.id,
     });
     await PushJob.performLater({
       branch,

@@ -3,6 +3,7 @@ import { ActionFunction, LoaderFunction, redirect } from "@remix-run/node";
 import { Form, Link, useLoaderData, useTransition } from "@remix-run/react";
 import invariant from "tiny-invariant";
 import { homePath } from "~/helpers/path-helpers";
+import { prisma } from "~/lib/db.server";
 import { MessageType, flashMessage } from "~/lib/flash";
 import { useClipboard } from "~/lib/hooks/use-copy-to-clipboard";
 import { commitSession, getSession } from "~/lib/session.server";
@@ -14,6 +15,7 @@ import {
 
 interface LoaderData {
   repository: Repository;
+  branchCount: number;
 }
 
 export let loader: LoaderFunction = async ({ params }): Promise<LoaderData> => {
@@ -27,8 +29,14 @@ export let loader: LoaderFunction = async ({ params }): Promise<LoaderData> => {
       statusText: "Repository not found",
     });
   }
+  const branchCount = await prisma.branch.count({
+    where: {
+      repositoryId: repository.id,
+    },
+  });
   return {
     repository,
+    branchCount,
   };
 };
 
@@ -50,7 +58,7 @@ export const action: ActionFunction = async ({ request, params }) => {
 };
 
 export default function RepositoryPage() {
-  const { repository } = useLoaderData<LoaderData>();
+  const { repository, branchCount } = useLoaderData<LoaderData>();
   const transition = useTransition();
 
   const requestDeleteConfirmation: React.FormEventHandler<HTMLFormElement> = (
@@ -72,6 +80,9 @@ export default function RepositoryPage() {
         <h2 className="text-2xl font-bold leading-7 text-white sm:truncate sm:text-3xl sm:tracking-tight">
           {repository.fullName}
         </h2>
+        <p className="text-gray-500 font-mono text-sm mt-2">
+          {branchCount} deployed branches
+        </p>
       </header>
 
       <main className="">
