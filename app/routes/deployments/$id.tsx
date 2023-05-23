@@ -232,7 +232,7 @@ export function DeploymentHeader({
             </a>
           </span>
         )}
-        {canRedeploy && <DeployButton disabled={canRedeploy} />}
+        {canRedeploy && <DeployButton disabled={!canRedeploy} />}
       </div>
     </div>
   );
