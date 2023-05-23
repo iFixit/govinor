@@ -1,4 +1,4 @@
-import { ActionFunction, LoaderFunction, redirect } from "@remix-run/node";
+import { ActionArgs, LoaderArgs, redirect } from "@remix-run/node";
 import { Form, useLoaderData } from "@remix-run/react";
 import { MessageType, flashMessage } from "~/lib/flash";
 import { ConsoleLogger } from "~/lib/logger";
@@ -6,13 +6,11 @@ import { commitSession, getSession } from "~/lib/session.server";
 import { Shell } from "~/lib/shell.server";
 import { cloneRepoWithDeployKey } from "~/models/commands/clone-repo-with-deploy-key";
 
-interface LoaderData {}
-
-export let loader: LoaderFunction = async ({ params }): Promise<LoaderData> => {
+export let loader = async ({ params }: LoaderArgs) => {
   return {};
 };
 
-export const action: ActionFunction = async ({ request, params }) => {
+export const action = async ({ request, params }: ActionArgs) => {
   const formData = await request.formData();
   // const input = Object.fromEntries(formData.entries());
   const repo = formData.get("repo");
@@ -46,7 +44,7 @@ export const action: ActionFunction = async ({ request, params }) => {
 };
 
 export default function DemoPage() {
-  const {} = useLoaderData<LoaderData>();
+  const {} = useLoaderData<typeof loader>();
   return (
     <div className="max-w-4xl mx-auto px-8">
       <header className="py-8">

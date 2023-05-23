@@ -1,24 +1,17 @@
-import { ClipboardIcon, CheckIcon } from "@heroicons/react/20/solid";
-import { ActionFunction, LoaderFunction, redirect } from "@remix-run/node";
+import { CheckIcon, ClipboardIcon } from "@heroicons/react/20/solid";
+import { ActionFunction, LoaderArgs, redirect } from "@remix-run/node";
 import { Form, Link, useLoaderData, useTransition } from "@remix-run/react";
 import invariant from "tiny-invariant";
 import { homePath } from "~/helpers/path-helpers";
 import { prisma } from "~/lib/db.server";
-import { MessageType, flashMessage } from "~/lib/flash";
+import { flashMessage, MessageType } from "~/lib/flash";
 import { useClipboard } from "~/lib/hooks/use-copy-to-clipboard";
 import { commitSession, getSession } from "~/lib/session.server";
-import {
-  Repository,
-  deleteRepository,
-  findRepository,
-} from "~/models/repository.server";
+import { deleteRepository, findRepository } from "~/models/repository.server";
 
-interface LoaderData {
-  repository: Repository;
-  branchCount: number;
-}
+export type Loader = typeof loader;
 
-export let loader: LoaderFunction = async ({ params }): Promise<LoaderData> => {
+export let loader = async ({ params }: LoaderArgs) => {
   invariant(params.id, "Expected a repository id");
   const repository = await findRepository({
     id: params.id,
@@ -58,7 +51,7 @@ export const action: ActionFunction = async ({ request, params }) => {
 };
 
 export default function RepositoryPage() {
-  const { repository, branchCount } = useLoaderData<LoaderData>();
+  const { repository, branchCount } = useLoaderData<Loader>();
   const transition = useTransition();
 
   const requestDeleteConfirmation: React.FormEventHandler<HTMLFormElement> = (

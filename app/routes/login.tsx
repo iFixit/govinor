@@ -1,7 +1,7 @@
-import { json, LoaderFunction, redirect } from "@remix-run/node";
+import { json, LoaderArgs, redirect } from "@remix-run/node";
 import { isAuthorized } from "~/lib/auth.server";
 
-export const loader: LoaderFunction = async ({ request }) => {
+export const loader = async ({ request }: LoaderArgs) => {
   if (isAuthorized(request)) {
     return redirect("/");
   }

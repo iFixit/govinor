@@ -1,7 +1,7 @@
 import {
   ErrorBoundaryComponent,
   LinksFunction,
-  LoaderFunction,
+  LoaderArgs,
   MetaFunction,
   json,
 } from "@remix-run/node";
@@ -18,26 +18,13 @@ import { requireAuthorization } from "~/lib/auth.server";
 import { commitSession, getSession } from "~/lib/session.server";
 import { GlobalNotification } from "./components/global-notification";
 import { DefaultLayout } from "./components/layout/default-layout";
-import { Message, getFlashMessage } from "./lib/flash";
+import { getFlashMessage } from "./lib/flash";
+import { findAllRepositories } from "./models/repository.server";
 import styles from "./styles.css";
-import {
-  RepositoryListItem,
-  findAllRepositories,
-} from "./models/repository.server";
 
-export let links: LinksFunction = () => {
-  return [{ rel: "stylesheet", href: styles }];
-};
-export const meta: MetaFunction = () => {
-  return { title: "Govinor" };
-};
+export type Loader = typeof loader;
 
-type LoaderData = {
-  globalMessage: Message | null;
-  repositories: RepositoryListItem[];
-};
-
-export let loader: LoaderFunction = async ({ request }) => {
+export let loader = async ({ request }: LoaderArgs) => {
   await requireAuthorization(request);
 
   const session = await getSession(request.headers.get("Cookie"));
@@ -45,7 +32,7 @@ export let loader: LoaderFunction = async ({ request }) => {
 
   const repositories = await findAllRepositories();
 
-  return json<LoaderData>(
+  return json(
     { globalMessage, repositories },
     {
       headers: {
@@ -55,8 +42,16 @@ export let loader: LoaderFunction = async ({ request }) => {
   );
 };
 
+export let links: LinksFunction = () => {
+  return [{ rel: "stylesheet", href: styles }];
+};
+
+export const meta: MetaFunction<Loader> = () => {
+  return { title: "Govinor" };
+};
+
 export default function App() {
-  const { globalMessage, repositories } = useLoaderData<LoaderData>();
+  const { globalMessage, repositories } = useLoaderData<Loader>();
   return (
     <html lang="en" className="h-full bg-gray-900">
       <head>

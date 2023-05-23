@@ -1,27 +1,16 @@
-import {
-  ActionFunction,
-  LoaderFunction,
-  json,
-  redirect,
-} from "@remix-run/node";
+import { ActionArgs, json, LoaderArgs, redirect } from "@remix-run/node";
 import { Form, Link, useActionData, useLoaderData } from "@remix-run/react";
 import invariant from "tiny-invariant";
-import { z } from "zod";
 import { repositoryPath } from "~/helpers/path-helpers";
-import { MessageType, flashMessage } from "~/lib/flash";
+import { flashMessage, MessageType } from "~/lib/flash";
 import { commitSession, getSession } from "~/lib/session.server";
 import {
-  Repository,
-  UpdateRepositoryInputSchema,
   findRepository,
   updateRepository,
+  UpdateRepositoryInputSchema,
 } from "~/models/repository.server";
 
-interface LoaderData {
-  repository: Repository;
-}
-
-export let loader: LoaderFunction = async ({ params }): Promise<LoaderData> => {
+export const loader = async ({ params }: LoaderArgs) => {
   invariant(params.id, "Expected a repository id");
   const repository = await findRepository({
     id: params.id,
@@ -37,7 +26,7 @@ export let loader: LoaderFunction = async ({ params }): Promise<LoaderData> => {
   };
 };
 
-export const action: ActionFunction = async ({ request, params }) => {
+export const action = async ({ request, params }: ActionArgs) => {
   invariant(params.id, "Expected a repository id");
   const formData = await request.formData();
   const input = Object.fromEntries(formData.entries());
@@ -55,15 +44,13 @@ export const action: ActionFunction = async ({ request, params }) => {
       },
     });
   } else {
-    return json<ActionData>(validatedInput.error.flatten());
+    return json(validatedInput.error.flatten());
   }
 };
 
-type ActionData = z.inferFlattenedErrors<typeof UpdateRepositoryInputSchema>;
-
 export default function EditRepositoryPage() {
-  const { repository } = useLoaderData<LoaderData>();
-  const actionData = useActionData<ActionData>();
+  const { repository } = useLoaderData<typeof loader>();
+  const actionData = useActionData<typeof action>();
   return (
     <div className="max-w-4xl mx-auto px-8">
       <header className="py-8">

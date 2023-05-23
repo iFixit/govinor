@@ -8,7 +8,12 @@ import {
   ExclamationTriangleIcon,
   RocketLaunchIcon,
 } from "@heroicons/react/24/solid";
-import { ActionFunction, LoaderFunction, redirect } from "@remix-run/node";
+import {
+  ActionArgs,
+  LoaderArgs,
+  SerializeFrom,
+  redirect,
+} from "@remix-run/node";
 import { Form, Link, useCatch } from "@remix-run/react";
 import dayjs from "dayjs";
 import calendar from "dayjs/plugin/calendar";
@@ -27,13 +32,9 @@ import { Deployment, findDeployment } from "~/models/deployment.server";
 
 dayjs.extend(calendar);
 
-interface LoaderData {
-  branch: Branch | null;
-  deployment: Deployment;
-  deployDomain: string;
-}
+export type Loader = typeof loader;
 
-export let loader: LoaderFunction = async ({ params }): Promise<LoaderData> => {
+export let loader = async ({ params }: LoaderArgs) => {
   invariant(params.id, "Expected params.id");
 
   const deployment = await findDeployment(params.id);
@@ -53,16 +54,11 @@ export let loader: LoaderFunction = async ({ params }): Promise<LoaderData> => {
   };
 };
 
-interface ActionData {}
-
 enum ActionType {
   Redeploy = "redeploy",
 }
 
-export const action: ActionFunction = async ({
-  request,
-  params,
-}): Promise<ActionData> => {
+export const action = async ({ request, params }: ActionArgs) => {
   invariant(params.id, "Expected params.id");
   const formData = await request.formData();
   const action = formData.get("_action");
@@ -108,7 +104,8 @@ export const action: ActionFunction = async ({
 };
 
 export default function DeploymentPage() {
-  let { deployment, branch, deployDomain } = useSWRData<LoaderData>();
+  let { deployment, branch, deployDomain } =
+    useSWRData<SerializeFrom<Loader>>();
 
   return (
     <>

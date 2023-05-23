@@ -1,4 +1,3 @@
-import type { LoaderFunction } from "@remix-run/node";
 import { Link, useLoaderData } from "@remix-run/react";
 import dayjs from "dayjs";
 import { StatusIndicator } from "~/components/status-indicator";
@@ -8,11 +7,9 @@ import {
 } from "~/helpers/date-helpers";
 import { DeploymentItem, findAllDeployments } from "~/models/deployment.server";
 
-interface LoaderData {
-  deployments: DeploymentItem[];
-}
+export type Loader = typeof loader;
 
-export let loader: LoaderFunction = async (): Promise<LoaderData> => {
+export const loader = async () => {
   const deployments = await findAllDeployments({ limit: 100 });
   return {
     deployments,
@@ -20,7 +17,7 @@ export let loader: LoaderFunction = async (): Promise<LoaderData> => {
 };
 
 export default function DeploymentsPage() {
-  const { deployments } = useLoaderData<LoaderData>();
+  const { deployments } = useLoaderData<Loader>();
   return (
     <main className="">
       <div className="pt-11">

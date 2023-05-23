@@ -1,6 +1,5 @@
-import { ActionFunction, json, redirect } from "@remix-run/node";
+import { ActionArgs, json, redirect } from "@remix-run/node";
 import { Form, Link, useActionData, useTransition } from "@remix-run/react";
-import { z } from "zod";
 import { repositoryPath } from "~/helpers/path-helpers";
 import { MessageType, flashMessage } from "~/lib/flash";
 import { commitSession, getSession } from "~/lib/session.server";
@@ -9,7 +8,7 @@ import {
   createRepository,
 } from "~/models/repository.server";
 
-export const action: ActionFunction = async ({ request }) => {
+export const action = async ({ request }: ActionArgs) => {
   const formData = await request.formData();
   const input = Object.fromEntries(formData.entries());
   const validatedInput = CreateRepositoryInputSchema.safeParse(input);
@@ -26,14 +25,12 @@ export const action: ActionFunction = async ({ request }) => {
       },
     });
   } else {
-    return json<ActionData>(validatedInput.error.flatten());
+    return json(validatedInput.error.flatten());
   }
 };
 
-type ActionData = z.inferFlattenedErrors<typeof CreateRepositoryInputSchema>;
-
 export default function NewRepositoryPage() {
-  const actionData = useActionData<ActionData>();
+  const actionData = useActionData<typeof action>();
 
   const transition = useTransition();
 

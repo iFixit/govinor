@@ -10,7 +10,7 @@ export interface DeploymentItem {
   failedReason: string;
   processedOn: string;
   finishedOn: string;
-  returnValue: any;
+  returnValue?: any;
 }
 
 interface FindAllDeploymentsOptions {
@@ -54,7 +54,7 @@ export interface Deployment {
   failedReason: string;
   processedOn: string;
   finishedOn: string;
-  returnValue: any;
+  returnValue?: any;
   progress?: ProgressLog;
 }
 

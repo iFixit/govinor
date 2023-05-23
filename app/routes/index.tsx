@@ -1,11 +1,11 @@
-import { LoaderFunction, MetaFunction } from "@remix-run/node";
+import { MetaFunction } from "@remix-run/node";
 import { Link, useLoaderData } from "@remix-run/react";
 import { DEPLOY_DOMAIN } from "~/../config/env.server";
 import { BranchPreviews } from "~/components/branch-previews";
 import { DeploymentList } from "~/components/deployment-list";
 import { StatsSection } from "~/components/stats-section";
 import { findAllBranches } from "~/models/branch.server";
-import { DeploymentItem, findAllDeployments } from "~/models/deployment.server";
+import { findAllDeployments } from "~/models/deployment.server";
 import { getSystemStats } from "~/models/system.server";
 
 export let meta: MetaFunction = () => {
@@ -16,21 +16,9 @@ export let meta: MetaFunction = () => {
   };
 };
 
-interface Stat {
-  name: string;
-  value: string;
-}
+export type Loader = typeof loader;
 
-interface LoaderData {
-  stats: Stat[];
-  branches: Branch[];
-  deployDomain: string;
-  deployments: DeploymentItem[];
-}
-
-type Branch = Awaited<ReturnType<typeof findAllBranches>>[0];
-
-export let loader: LoaderFunction = async (): Promise<LoaderData> => {
+export const loader = async () => {
   const [systemStats, branches, deployments] = await Promise.all([
     getSystemStats(),
     findAllBranches(),
@@ -50,7 +38,7 @@ export let loader: LoaderFunction = async (): Promise<LoaderData> => {
 
 export default function Index() {
   const { stats, branches, deployDomain, deployments } =
-    useLoaderData<LoaderData>();
+    useLoaderData<Loader>();
   return (
     <>
       <div className="relative">

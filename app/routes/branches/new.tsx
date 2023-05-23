@@ -1,21 +1,19 @@
-import { ActionFunction, json, redirect } from "@remix-run/node";
+import { ActionArgs, json, redirect } from "@remix-run/node";
 import { Form, useActionData, useTransition } from "@remix-run/react";
 import { z } from "zod";
-import { DEPLOYMENT_DOCKER_COMPOSE_ROOT_DIRECTORY } from "~/../config/env.server";
 import { MessageType, flashMessage } from "~/lib/flash";
 import { commitSession, getSession } from "~/lib/session.server";
-import { createBranch } from "~/models/branch.server";
 
-export const action: ActionFunction = async ({ request }) => {
+export const action = async ({ request }: ActionArgs) => {
   const formData = await request.formData();
   const input = Object.fromEntries(formData.entries());
   const validatedInput = CreateBranchInputSchema.safeParse(input);
   if (validatedInput.success) {
-    await createBranch({
-      branchName: validatedInput.data.branchName,
-      cloneUrl: "https://github.com/iFixit/react-commerce.git",
-      dockerComposeDirectory: DEPLOYMENT_DOCKER_COMPOSE_ROOT_DIRECTORY,
-    });
+    // await createBranch({
+    //   branchName: validatedInput.data.branchName,
+    //   cloneUrl: "https://github.com/iFixit/react-commerce.git",
+    //   dockerComposeDirectory: DEPLOYMENT_DOCKER_COMPOSE_ROOT_DIRECTORY,
+    // });
     const session = await getSession(request.headers.get("Cookie"));
     flashMessage(session, {
       type: MessageType.Success,
@@ -28,18 +26,16 @@ export const action: ActionFunction = async ({ request }) => {
       },
     });
   } else {
-    return json<ActionData>(validatedInput.error.flatten());
+    return json(validatedInput.error.flatten());
   }
 };
-
-type ActionData = z.inferFlattenedErrors<typeof CreateBranchInputSchema>;
 
 const CreateBranchInputSchema = z.object({
   branchName: z.string().trim().min(1, "Branch name is required"),
 });
 
 export default function NewBranchRoute() {
-  const actionData = useActionData<ActionData>();
+  const actionData = useActionData<typeof action>();
   const transition = useTransition();
   const isSubmitting = transition.submission != null;
   return (

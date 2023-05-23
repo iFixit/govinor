@@ -4,7 +4,7 @@ import {
   EllipsisVerticalIcon,
   TrashIcon,
 } from "@heroicons/react/20/solid";
-import { ActionFunction, redirect } from "@remix-run/node";
+import { ActionArgs, redirect } from "@remix-run/node";
 import { Form } from "@remix-run/react";
 import { Fragment } from "react";
 import invariant from "tiny-invariant";
@@ -21,7 +21,7 @@ enum Intent {
   Delete = "delete",
 }
 
-export const action: ActionFunction = async ({ request }) => {
+export const action = async ({ request }: ActionArgs) => {
   const formData = await request.formData();
   const intent = formData.get("intent");
   const session = await getSession(request.headers.get("Cookie"));
