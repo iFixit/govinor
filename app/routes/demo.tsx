@@ -4,7 +4,7 @@ import { MessageType, flashMessage } from "~/lib/flash";
 import { ConsoleLogger } from "~/lib/logger";
 import { commitSession, getSession } from "~/lib/session.server";
 import { Shell } from "~/lib/shell.server";
-import { clonePrivateRepo } from "~/models/commands/clonePrivateRepo.server";
+import { cloneRepoWithDeployKey } from "~/models/commands/clone-repo-with-deploy-key";
 
 interface LoaderData {}
 
@@ -35,7 +35,7 @@ export const action: ActionFunction = async ({ request, params }) => {
   const [repoOwner, repoName] = repo.split("/");
 
   await shell.run(
-    clonePrivateRepo({
+    cloneRepoWithDeployKey({
       repoOwner,
       repoName,
       branchName: "main",

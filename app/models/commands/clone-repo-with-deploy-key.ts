@@ -9,7 +9,7 @@ interface clonePrivateRepoCommandOptions {
   repoName: string;
 }
 
-export function clonePrivateRepo(
+export function cloneRepoWithDeployKey(
   options: clonePrivateRepoCommandOptions
 ): SpawnCommand {
   const cloneUrl = `git@github.com:${options.repoOwner}/${options.repoName}.git`;

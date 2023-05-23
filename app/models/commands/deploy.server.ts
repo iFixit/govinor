@@ -13,6 +13,7 @@ import { Logger } from "~/lib/logger";
 import { Shell, SpawnCommand } from "~/lib/shell.server";
 import { Branch } from "../branch.server";
 import { cloneRepoCommand } from "./cloneRepo.server";
+import { cloneRepoWithDeployKey } from "./clone-repo-with-deploy-key";
 
 interface BaseOptions {
   logger?: Logger;
@@ -44,13 +45,25 @@ export async function deploy({ logger, branch }: DeployOptions): Promise<void> {
     await shell.run(resetLocalBranchCommand({ branchName: branch.name }));
   } else {
     await info(`Creating deployment assets for branch "${branch.name}".`);
-    await shell.run(
-      cloneRepoCommand({
-        branchName: branch.name,
-        cloneUrl: branch.cloneUrl,
-        path: branch.handle,
-      })
-    );
+    if (branch.repository) {
+      await info("Using deploy key to clone repo...");
+      await shell.run(
+        cloneRepoWithDeployKey({
+          branchName: branch.name,
+          path: branch.handle,
+          repoName: branch.repository.name,
+          repoOwner: branch.repository.owner,
+        })
+      );
+    } else {
+      await shell.run(
+        cloneRepoCommand({
+          branchName: branch.name,
+          cloneUrl: branch.cloneUrl,
+          path: branch.handle,
+        })
+      );
+    }
   }
   const envFileExists = await checkEnvFileExists(
     branch.handle,

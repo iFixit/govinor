@@ -38,6 +38,14 @@ export async function findBranch(branchName: string) {
       handle: true,
       cloneUrl: true,
       dockerComposeDirectory: true,
+      repository: {
+        select: {
+          id: true,
+          name: true,
+          owner: true,
+          fullName: true,
+        },
+      },
     },
   });
 }

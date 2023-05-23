@@ -1,13 +1,10 @@
 import { ActionFunction, json } from "@remix-run/node";
 import crypto from "crypto";
-import {
-  DEPLOYMENT_DOCKER_COMPOSE_ROOT_DIRECTORY,
-  GITHUB_WEBHOOK_SECRET,
-} from "~/../config/env.server";
+import { z } from "zod";
+import { GITHUB_WEBHOOK_SECRET } from "~/../config/env.server";
 import { DeleteDeploymentJob } from "~/jobs/delete-deployment-job.server";
 import { PushJob } from "~/jobs/push-job.server";
 import { createBranch } from "~/models/branch.server";
-import { z } from "zod";
 import { findRepository } from "~/models/repository.server";
 
 export const action: ActionFunction = async ({ request }) => {
@@ -36,7 +33,6 @@ export const action: ActionFunction = async ({ request }) => {
     await createBranch({
       branchName: branch,
       cloneUrl: payload.repository.clone_url,
-      // dockerComposeDirectory: DEPLOYMENT_DOCKER_COMPOSE_ROOT_DIRECTORY,
       dockerComposeDirectory: repository.dockerComposeDirectory,
       repositoryId: repository.id,
     });
