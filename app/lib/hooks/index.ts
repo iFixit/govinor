@@ -1,1 +1,1 @@
-export * from "./useSWRData";
+export * from "./use-swr-data";

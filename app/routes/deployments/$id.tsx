@@ -104,8 +104,7 @@ export const action = async ({ request, params }: ActionArgs) => {
 };
 
 export default function DeploymentPage() {
-  let { deployment, branch, deployDomain } =
-    useSWRData<SerializeFrom<Loader>>();
+  let { deployment, branch, deployDomain } = useSWRData<Loader>();
 
   return (
     <>
