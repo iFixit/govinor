@@ -12,8 +12,10 @@ import { getRepoDeployPath, getRepoPath } from "~/helpers/deployment-helpers";
 import { Logger } from "~/lib/logger";
 import { Shell, SpawnCommand } from "~/lib/shell.server";
 import { Branch } from "../branch.server";
-import { cloneRepoCommand } from "./cloneRepo.server";
+import { cloneRepoCommand } from "./clone-repo.server";
 import { cloneRepoWithDeployKey } from "./clone-repo-with-deploy-key";
+import { fetchLatestChangesWithKeyCommand } from "./fetch-latest-changes-with-deploy-key";
+import { resetLocalBranchWithKeyCommand } from "./reset-local-branch-with-key";
 
 interface BaseOptions {
   logger?: Logger;
@@ -41,8 +43,26 @@ export async function deploy({ logger, branch }: DeployOptions): Promise<void> {
     await info(
       `Deployment for branch "${branch.name}" already exists. Pulling latest changes to update.`
     );
-    await shell.run(fetchLatestChangesCommand({ branchName: branch.name }));
-    await shell.run(resetLocalBranchCommand({ branchName: branch.name }));
+    if (branch.repository) {
+      await info("Using deploy key to fetch latest changes...");
+      await shell.run(
+        fetchLatestChangesWithKeyCommand({
+          branchName: branch.name,
+          repoName: branch.repository.name,
+          repoOwner: branch.repository.owner,
+        })
+      );
+      await shell.run(
+        resetLocalBranchWithKeyCommand({
+          branchName: branch.name,
+          repoName: branch.repository.name,
+          repoOwner: branch.repository.owner,
+        })
+      );
+    } else {
+      await shell.run(fetchLatestChangesCommand({ branchName: branch.name }));
+      await shell.run(resetLocalBranchCommand({ branchName: branch.name }));
+    }
   } else {
     await info(`Creating deployment assets for branch "${branch.name}".`);
     if (branch.repository) {

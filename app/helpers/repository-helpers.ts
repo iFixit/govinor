@@ -7,7 +7,7 @@ import {
 } from "~/helpers/fs-helpers";
 import { ConsoleLogger } from "~/lib/logger";
 import { Shell } from "~/lib/shell.server";
-import { createSSHKeyCommand } from "~/models/commands/createSSHKey.server";
+import { createSSHKeyCommand } from "~/models/commands/create-ssh-key.server";
 
 const SSH_KEY_NAME = "ssh-key";
 
