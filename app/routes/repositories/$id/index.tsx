@@ -1,6 +1,6 @@
 import { CheckIcon, ClipboardIcon } from "@heroicons/react/20/solid";
 import { ActionFunction, LoaderArgs, redirect } from "@remix-run/node";
-import { Form, Link, useLoaderData, useTransition } from "@remix-run/react";
+import { Form, Link, useLoaderData, useNavigation } from "@remix-run/react";
 import invariant from "tiny-invariant";
 import { homePath } from "~/helpers/path-helpers";
 import { prisma } from "~/lib/db.server";
@@ -52,7 +52,8 @@ export const action: ActionFunction = async ({ request, params }) => {
 
 export default function RepositoryPage() {
   const { repository, branchCount } = useLoaderData<Loader>();
-  const transition = useTransition();
+  const navigation = useNavigation();
+  const isDeleting = navigation.state === "submitting";
 
   const requestDeleteConfirmation: React.FormEventHandler<HTMLFormElement> = (
     event
@@ -152,10 +153,10 @@ export default function RepositoryPage() {
                 type="submit"
                 name="method"
                 value="delete"
-                disabled={transition.state === "submitting"}
+                disabled={navigation.state === "submitting"}
                 className="rounded-md bg-red-600 disabled:bg-red-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 cursor-pointer"
               >
-                {transition.state === "submitting" ? "Deleting..." : "Delete"}
+                {isDeleting ? "Deleting..." : "Delete"}
               </button>
             </Form>
           </div>

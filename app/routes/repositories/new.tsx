@@ -1,11 +1,11 @@
 import { ActionArgs, json, redirect } from "@remix-run/node";
-import { Form, Link, useActionData, useTransition } from "@remix-run/react";
+import { Form, Link, useActionData, useNavigation } from "@remix-run/react";
 import { repositoryPath } from "~/helpers/path-helpers";
-import { MessageType, flashMessage } from "~/lib/flash";
+import { flashMessage, MessageType } from "~/lib/flash";
 import { commitSession, getSession } from "~/lib/session.server";
 import {
-  CreateRepositoryInputSchema,
   createRepository,
+  CreateRepositoryInputSchema,
 } from "~/models/repository.server";
 
 export const action = async ({ request }: ActionArgs) => {
@@ -32,7 +32,7 @@ export const action = async ({ request }: ActionArgs) => {
 export default function NewRepositoryPage() {
   const actionData = useActionData<typeof action>();
 
-  const transition = useTransition();
+  const navigation = useNavigation();
 
   return (
     <div className="max-w-4xl mx-auto px-8">
@@ -129,10 +129,14 @@ export default function NewRepositoryPage() {
             </Link>
             <button
               type="submit"
-              disabled={transition.state === "submitting"}
+              disabled={navigation.state === "submitting"}
               className="rounded-md bg-indigo-500 disabled:bg-indigo-400 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
             >
-              {transition.state === "submitting" ? "Creating..." : "Create"}
+              {navigation.state === "submitting"
+                ? "Creating..."
+                : navigation.state === "loading"
+                ? "Created!"
+                : "Create"}
             </button>
           </div>
         </Form>

@@ -1,7 +1,7 @@
 import { ActionArgs, json, redirect } from "@remix-run/node";
-import { Form, useActionData, useTransition } from "@remix-run/react";
+import { Form, useActionData, useNavigation } from "@remix-run/react";
 import { z } from "zod";
-import { MessageType, flashMessage } from "~/lib/flash";
+import { flashMessage, MessageType } from "~/lib/flash";
 import { commitSession, getSession } from "~/lib/session.server";
 
 export const action = async ({ request }: ActionArgs) => {
@@ -36,8 +36,8 @@ const CreateBranchInputSchema = z.object({
 
 export default function NewBranchRoute() {
   const actionData = useActionData<typeof action>();
-  const transition = useTransition();
-  const isSubmitting = transition.submission != null;
+  const navigation = useNavigation();
+  const isSubmitting = navigation.state === "submitting";
   return (
     <div className="lg:max-w-4xl mx-auto sm:px-5 lg:px-0">
       <div className="md:grid md:grid-cols-3 md:gap-6">
