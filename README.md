@@ -31,7 +31,7 @@ When you need to deploy a new version of govinor, run the following commands:
 ```sh
 cd ~/govinor;
 git pull;
-npm install;
+npm ci;
 npm run deploy;
 ```
 
