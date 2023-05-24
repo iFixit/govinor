@@ -4,6 +4,7 @@ import { DEPLOY_DOMAIN } from "~/../config/env.server";
 import { BranchPreviews } from "~/components/branch-previews";
 import { DeploymentList } from "~/components/deployment-list";
 import { StatsSection } from "~/components/stats-section";
+import { BreadcrumbItem } from "~/lib/hooks/use-breadcrumbs";
 import { findAllBranches } from "~/models/branch.server";
 import { findAllDeployments } from "~/models/deployment.server";
 import { getSystemStats } from "~/models/system.server";
@@ -34,6 +35,17 @@ export const loader = async () => {
     deployments,
     deployDomain: DEPLOY_DOMAIN,
   };
+};
+
+export const handle = {
+  getBreadcrumbs: (): BreadcrumbItem[] => {
+    return [
+      {
+        id: "dashboard",
+        name: "Dashboard",
+      },
+    ];
+  },
 };
 
 export default function Index() {

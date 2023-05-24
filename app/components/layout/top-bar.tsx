@@ -1,10 +1,11 @@
 import { Bars3Icon } from "@heroicons/react/20/solid";
+import { Breadcrumbs } from "./breadcrumbs";
 
-interface SearchHeaderProps {
+interface TopBarProps {
   onOpenSidebar: () => void;
 }
 
-export function SearchHeader({ onOpenSidebar }: SearchHeaderProps) {
+export function TopBar({ onOpenSidebar }: TopBarProps) {
   return (
     <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-6 border-b border-white/5 bg-gray-900 px-4 shadow-sm sm:px-6 lg:px-8">
       <button
@@ -17,7 +18,7 @@ export function SearchHeader({ onOpenSidebar }: SearchHeaderProps) {
       </button>
 
       <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
-        {/* Breadcrumbs might go here */}
+        <Breadcrumbs />
       </div>
     </div>
   );

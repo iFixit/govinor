@@ -5,6 +5,7 @@ import {
   getHumanReadableDateTime,
   getHumanReadableDuration,
 } from "~/helpers/date-helpers";
+import { BreadcrumbItem } from "~/lib/hooks/use-breadcrumbs";
 import { DeploymentItem, findAllDeployments } from "~/models/deployment.server";
 
 export type Loader = typeof loader;
@@ -16,12 +17,23 @@ export const loader = async () => {
   };
 };
 
+export const handle = {
+  getBreadcrumbs: (): BreadcrumbItem[] => {
+    return [
+      {
+        id: "activities",
+        name: "Activities",
+      },
+    ];
+  },
+};
+
 export default function DeploymentsPage() {
   const { deployments } = useLoaderData<Loader>();
   return (
     <main className="">
       <div className="pt-11">
-        <h2 className="px-4 text-base font-semibold leading-7 text-white sm:px-6 lg:px-8">
+        <h2 className="px-4 text-2xl font-bold leading-7 text-white sm:px-6 lg:px-8">
           Activities
         </h2>
         <table className="mt-6 w-full text-left">

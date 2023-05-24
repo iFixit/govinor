@@ -11,21 +11,26 @@ import {
 import {
   ActionArgs,
   LoaderArgs,
-  SerializeFrom,
   redirect,
+  SerializeFrom,
 } from "@remix-run/node";
-import { Form, Link, useCatch } from "@remix-run/react";
+import { Form, useCatch } from "@remix-run/react";
 import dayjs from "dayjs";
 import calendar from "dayjs/plugin/calendar";
 import invariant from "tiny-invariant";
 import { DEPLOY_DOMAIN } from "~/../config/env.server";
 import { badRequest } from "~/helpers/application-helpers";
 import { getHumanReadableDateTime } from "~/helpers/date-helpers";
-import { branchPreviewUrl, deploymentPath } from "~/helpers/path-helpers";
+import {
+  branchPreviewUrl,
+  deploymentPath,
+  deploymentsPath,
+} from "~/helpers/path-helpers";
 import { classNames } from "~/helpers/ui-helpers";
 import { PushJob } from "~/jobs/push-job.server";
-import { MessageType, flashMessage } from "~/lib/flash";
+import { flashMessage, MessageType } from "~/lib/flash";
 import { useSWRData } from "~/lib/hooks";
+import { BreadcrumbItem } from "~/lib/hooks/use-breadcrumbs";
 import { commitSession, getSession } from "~/lib/session.server";
 import { Branch, findBranch } from "~/models/branch.server";
 import { Deployment, findDeployment } from "~/models/deployment.server";
@@ -103,6 +108,22 @@ export const action = async ({ request, params }: ActionArgs) => {
   throw badRequest({});
 };
 
+export const handle = {
+  getBreadcrumbs: (data: SerializeFrom<Loader>): BreadcrumbItem[] => {
+    return [
+      {
+        id: "activities",
+        name: "Activities",
+        to: deploymentsPath(),
+      },
+      {
+        id: data.deployment.id ?? "#",
+        name: data.deployment.name,
+      },
+    ];
+  },
+};
+
 export default function DeploymentPage() {
   let { deployment, branch, deployDomain } = useSWRData<Loader>();
 
@@ -174,20 +195,6 @@ export function DeploymentHeader({
   return (
     <div className="lg:flex lg:items-center lg:justify-between p-8">
       <div className="min-w-0 flex-1">
-        <nav className="flex" aria-label="Breadcrumb">
-          <ol role="list" className="flex items-center space-x-4">
-            <li>
-              <div className="flex">
-                <Link
-                  to="/deployments"
-                  className="text-sm font-medium text-gray-300 hover:text-white"
-                >
-                  Deployments
-                </Link>
-              </div>
-            </li>
-          </ol>
-        </nav>
         <h2 className="mt-2 text-2xl font-bold leading-7 text-white sm:truncate sm:text-3xl sm:tracking-tight">
           {deployment.name}
         </h2>

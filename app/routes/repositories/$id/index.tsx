@@ -1,10 +1,20 @@
 import { CheckIcon, ClipboardIcon } from "@heroicons/react/20/solid";
-import { ActionFunction, LoaderArgs, redirect } from "@remix-run/node";
+import {
+  ActionFunction,
+  LoaderArgs,
+  redirect,
+  SerializeFrom,
+} from "@remix-run/node";
 import { Form, Link, useLoaderData, useNavigation } from "@remix-run/react";
 import invariant from "tiny-invariant";
-import { homePath } from "~/helpers/path-helpers";
+import {
+  editRepositoryPath,
+  homePath,
+  repositoryPath,
+} from "~/helpers/path-helpers";
 import { prisma } from "~/lib/db.server";
 import { flashMessage, MessageType } from "~/lib/flash";
+import { BreadcrumbItem } from "~/lib/hooks/use-breadcrumbs";
 import { useClipboard } from "~/lib/hooks/use-copy-to-clipboard";
 import { commitSession, getSession } from "~/lib/session.server";
 import { deleteRepository, findRepository } from "~/models/repository.server";
@@ -48,6 +58,18 @@ export const action: ActionFunction = async ({ request, params }) => {
       "Set-Cookie": await commitSession(session),
     },
   });
+};
+
+export const handle = {
+  getBreadcrumbs: (data: SerializeFrom<Loader>): BreadcrumbItem[] => {
+    return [
+      {
+        id: data.repository.id,
+        name: data.repository.fullName,
+        to: repositoryPath(data.repository),
+      },
+    ];
+  },
 };
 
 export default function RepositoryPage() {
@@ -143,7 +165,7 @@ export default function RepositoryPage() {
           </div>
           <div className="mt-6 flex items-center justify-start gap-x-4">
             <Link
-              to="edit"
+              to={editRepositoryPath(repository)}
               className="rounded-md bg-white/10 min-w-[70px] text-center px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-white/20 cursor-pointer"
             >
               Edit

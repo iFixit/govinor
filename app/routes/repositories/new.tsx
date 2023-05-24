@@ -2,6 +2,7 @@ import { ActionArgs, json, redirect } from "@remix-run/node";
 import { Form, Link, useActionData, useNavigation } from "@remix-run/react";
 import { repositoryPath } from "~/helpers/path-helpers";
 import { flashMessage, MessageType } from "~/lib/flash";
+import { BreadcrumbItem } from "~/lib/hooks/use-breadcrumbs";
 import { commitSession, getSession } from "~/lib/session.server";
 import {
   createRepository,
@@ -27,6 +28,17 @@ export const action = async ({ request }: ActionArgs) => {
   } else {
     return json(validatedInput.error.flatten());
   }
+};
+
+export const handle = {
+  getBreadcrumbs: (): BreadcrumbItem[] => {
+    return [
+      {
+        id: "new-repo",
+        name: "New repo",
+      },
+    ];
+  },
 };
 
 export default function NewRepositoryPage() {

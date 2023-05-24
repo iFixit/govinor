@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { RepositoryListItem } from "~/models/repository.server";
 import { DesktopSidebar } from "./desktop-sidebar";
 import { MobileSidebar } from "./mobile-sidebar";
-import { SearchHeader } from "./search-header";
+import { TopBar } from "./top-bar";
 
 type DefaultLayoutProps = React.PropsWithChildren<{
   repositories: RepositoryListItem[];
@@ -22,7 +22,7 @@ export function DefaultLayout({ children, repositories }: DefaultLayoutProps) {
       <DesktopSidebar repositories={repositories} />
 
       <div className="xl:pl-72">
-        <SearchHeader onOpenSidebar={() => setSidebarOpen(true)} />
+        <TopBar onOpenSidebar={() => setSidebarOpen(true)} />
         {children}
       </div>
     </div>

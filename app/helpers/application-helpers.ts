@@ -16,3 +16,30 @@ export function isPresent<T>(value: T | null | undefined): value is T {
 
   return true;
 }
+
+export const isNonEmptyString = (value: any): value is string => {
+  return typeof value === "string" && value.trim().length > 0;
+};
+
+export const isNonEmptyArray = <T>(value: T | null | undefined): value is T => {
+  return Array.isArray(value) && value.length > 0;
+};
+
+export const isNonEmptyObject = <T>(
+  value: T | null | undefined
+): value is T => {
+  return (
+    value != null && typeof value === "object" && Object.keys(value).length > 0
+  );
+};
+
+export const isBlank = (value: any): boolean => {
+  return !isPresent(value);
+};
+
+export const presentOrDefault = <T>(
+  value: T | undefined | null,
+  defaultValue: T
+): T => {
+  return isPresent(value) ? value : defaultValue;
+};

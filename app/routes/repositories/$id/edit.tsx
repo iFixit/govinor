@@ -1,14 +1,23 @@
-import { ActionArgs, json, LoaderArgs, redirect } from "@remix-run/node";
+import {
+  ActionArgs,
+  json,
+  LoaderArgs,
+  redirect,
+  SerializeFrom,
+} from "@remix-run/node";
 import { Form, Link, useActionData, useLoaderData } from "@remix-run/react";
 import invariant from "tiny-invariant";
 import { repositoryPath } from "~/helpers/path-helpers";
 import { flashMessage, MessageType } from "~/lib/flash";
+import { BreadcrumbItem } from "~/lib/hooks/use-breadcrumbs";
 import { commitSession, getSession } from "~/lib/session.server";
 import {
   findRepository,
   updateRepository,
   UpdateRepositoryInputSchema,
 } from "~/models/repository.server";
+
+export type Loader = typeof loader;
 
 export const loader = async ({ params }: LoaderArgs) => {
   invariant(params.id, "Expected a repository id");
@@ -46,6 +55,22 @@ export const action = async ({ request, params }: ActionArgs) => {
   } else {
     return json(validatedInput.error.flatten());
   }
+};
+
+export const handle = {
+  getBreadcrumbs: (data: SerializeFrom<Loader>): BreadcrumbItem[] => {
+    return [
+      {
+        id: data.repository.id,
+        name: data.repository.fullName,
+        to: repositoryPath(data.repository),
+      },
+      {
+        id: `${data.repository.id}/edit`,
+        name: "Edit",
+      },
+    ];
+  },
 };
 
 export default function EditRepositoryPage() {
