@@ -19,6 +19,7 @@ import dayjs from "dayjs";
 import calendar from "dayjs/plugin/calendar";
 import invariant from "tiny-invariant";
 import { DEPLOY_DOMAIN } from "~/../config/env.server";
+import Spinner from "~/components/spinner";
 import { badRequest } from "~/helpers/application-helpers";
 import { getHumanReadableDateTime } from "~/helpers/date-helpers";
 import {
@@ -214,11 +215,20 @@ export function DeploymentHeader({
             Processed: {getHumanReadableDateTime(processedOn)}
           </div>
           <div className="mt-2 flex items-center text-sm text-gray-300">
-            <CheckIcon
-              className="mr-1.5 h-5 w-5 flex-shrink-0 text-gray-500"
-              aria-hidden="true"
-            />
-            Completed: {getHumanReadableDateTime(finishedOn)}
+            {finishedOn.isValid() ? (
+              <>
+                <CheckIcon
+                  className="mr-1.5 h-5 w-5 flex-shrink-0 text-gray-500"
+                  aria-hidden="true"
+                />
+                Completed: {getHumanReadableDateTime(finishedOn)}
+              </>
+            ) : (
+              <>
+                <Spinner />
+                <span className="text-gray-500">Deploying...</span>
+              </>
+            )}
           </div>
         </div>
       </div>
