@@ -9,6 +9,7 @@ import { Form } from "@remix-run/react";
 import { Fragment } from "react";
 import invariant from "tiny-invariant";
 import { MessageType } from "~/components/global-notification";
+import { branchesPath } from "~/helpers/path-helpers";
 import { classNames } from "~/helpers/ui-helpers";
 import { DeleteDeploymentJob } from "~/jobs/delete-deployment-job.server";
 import { PushJob } from "~/jobs/push-job.server";
@@ -109,6 +110,10 @@ interface BranchActionsProps {
 }
 
 export function BranchActions({ branch }: BranchActionsProps) {
+  const { repository } = branch;
+  if (repository == null) {
+    return null;
+  }
   return (
     <Menu as="div" className="relative flex-none">
       <Menu.Button className="-m-2.5 block rounded p-2.5 text-gray-500 hover:text-gray-50 hover:bg-gray-500/10">
@@ -128,7 +133,7 @@ export function BranchActions({ branch }: BranchActionsProps) {
           <Menu.Item>
             {({ active }) => (
               <Form
-                action="/branches"
+                action={branchesPath(repository)}
                 method="post"
                 reloadDocument
                 className={classNames(
@@ -155,7 +160,7 @@ export function BranchActions({ branch }: BranchActionsProps) {
           <Menu.Item>
             {({ active }) => (
               <Form
-                action="/branches"
+                action={branchesPath(repository)}
                 method="post"
                 reloadDocument
                 className={classNames(

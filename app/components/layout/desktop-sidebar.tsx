@@ -2,7 +2,11 @@ import { Link, NavLink } from "@remix-run/react";
 import { classNames } from "~/helpers/ui-helpers";
 import { navigation } from "./navigation";
 import { PlusIcon } from "@heroicons/react/20/solid";
-import { newRepositoryPath, repositoryPath } from "~/helpers/path-helpers";
+import {
+  homePath,
+  newRepositoryPath,
+  repositoryPath,
+} from "~/helpers/path-helpers";
 import type { RepositoryListItem } from "~/models/repository.server";
 
 interface DesktopSidebarProps {
@@ -15,9 +19,12 @@ export function DesktopSidebar({ repositories }: DesktopSidebarProps) {
       {/* Sidebar component, swap this element with another sidebar if you like */}
       <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-black/10 px-6 ring-1 ring-white/5">
         <div className="flex h-16 shrink-0 items-center">
-          <p className="text-2xl text-white font-bold tracking-tight">
+          <Link
+            to={homePath()}
+            className="text-2xl text-white font-bold tracking-tight"
+          >
             🚀 Govinor
-          </p>
+          </Link>
         </div>
         <nav className="flex flex-1 flex-col">
           <ul role="list" className="flex flex-1 flex-col gap-y-7">

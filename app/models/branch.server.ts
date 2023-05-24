@@ -16,6 +16,7 @@ export async function findAllBranches() {
       dockerComposeDirectory: true,
       repository: {
         select: {
+          id: true,
           fullName: true,
         },
       },

@@ -1,4 +1,8 @@
-import { CheckIcon, ClipboardIcon } from "@heroicons/react/20/solid";
+import {
+  CheckIcon,
+  ClipboardIcon,
+  PlusSmallIcon,
+} from "@heroicons/react/20/solid";
 import {
   ActionFunction,
   LoaderArgs,
@@ -10,6 +14,7 @@ import invariant from "tiny-invariant";
 import {
   editRepositoryPath,
   homePath,
+  newBranchPath,
   repositoryPath,
 } from "~/helpers/path-helpers";
 import { prisma } from "~/lib/db.server";
@@ -92,13 +97,23 @@ export default function RepositoryPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-8">
-      <header className="py-8">
-        <h2 className="text-2xl font-bold leading-7 text-white sm:truncate sm:text-3xl sm:tracking-tight">
-          {repository.fullName}
-        </h2>
-        <p className="text-gray-500 font-mono text-sm mt-2">
-          {branchCount} deployed branches
-        </p>
+      <header className="py-8 flex justify-between">
+        <div>
+          <h2 className="text-2xl font-bold leading-7 text-white sm:truncate sm:text-3xl sm:tracking-tight">
+            {repository.fullName}
+          </h2>
+          <div className="text-gray-500 font-mono text-sm mt-2 flex items-center space-x-4">
+            <span>{branchCount} deployed branches</span>
+            <Link
+              to={newBranchPath(repository)}
+              className="font-bold inline-flex"
+            >
+              <PlusSmallIcon className="h-5 w-5" aria-hidden="true" />
+              <span>Deploy branch</span>
+            </Link>
+          </div>
+        </div>
+        <div></div>
       </header>
 
       <main className="">
@@ -132,7 +147,13 @@ export default function RepositoryPage() {
               {repository.deployKey && (
                 <div className="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
                   <dt className="text-sm font-medium leading-6 text-white">
-                    Github deploy key
+                    <p className="mb-3">Github deploy key</p>
+                    <p className="text-xs text-gray-400">
+                      To set up the Deploy key, navigate to{" "}
+                      <code>{repository.fullName}</code> setting, select 'Deploy
+                      keys' and click on 'Add deploy key'. Paste the copied key,
+                      provide a title, and then click 'Add key'.
+                    </p>
                   </dt>
                   <dd className="mt-1 text-sm leading-6 text-gray-400 sm:col-span-2 sm:mt-0 flex flex-col space-y-2">
                     {isCopied ? (

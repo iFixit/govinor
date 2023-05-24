@@ -1,5 +1,5 @@
 import type { BranchItem } from "~/models/branch.server";
-import { BranchActions } from "~/routes/branches";
+import { BranchActions } from "~/routes/repositories/$id/branches";
 
 interface BranchPreviewsProps {
   branches: BranchItem[];
@@ -22,14 +22,6 @@ export function BranchPreviews({
           >
             <div className="min-w-0 flex-auto">
               <div className="flex items-center gap-x-3">
-                {/* <div
-                className={classNames(
-                  statuses[branch.status],
-                  "flex-none rounded-full p-1"
-                )}
-              >
-                <div className="h-2 w-2 rounded-full bg-current" />
-              </div> */}
                 <h2 className="min-w-0 text-sm font-semibold leading-6 text-white">
                   <a
                     href={`https://${branch.handle}.${deployDomain}/admin`}
@@ -43,13 +35,6 @@ export function BranchPreviews({
               </div>
               <div className="mt-3 flex items-center gap-x-2.5 text-xs leading-5 text-gray-400">
                 <p className="truncate">Deployed from {repositoryFullName}</p>
-                {/* <svg
-                viewBox="0 0 2 2"
-                className="h-0.5 w-0.5 flex-none fill-gray-300"
-              >
-                <circle cx={1} cy={1} r={1} />
-              </svg>
-              <p className="whitespace-nowrap">{branch.statusText}</p> */}
               </div>
             </div>
             <div className="flex flex-none items-center gap-x-4">
@@ -62,11 +47,6 @@ export function BranchPreviews({
               </a>
               <BranchActions branch={branch} />
             </div>
-
-            {/* <ChevronRightIcon
-              className="h-5 w-5 flex-none text-gray-400"
-              aria-hidden="true"
-            /> */}
           </li>
         );
       })}

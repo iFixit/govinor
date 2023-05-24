@@ -1,4 +1,4 @@
-type IdResource = { id?: string };
+type IdResource = { id?: string } | string;
 
 export function homePath() {
   return "/";
@@ -20,7 +20,8 @@ export function deploymentsPath() {
 }
 
 export function deploymentPath<T extends IdResource>(deployment: T) {
-  return `${deploymentsPath()}/${deployment.id}`;
+  const id = createIdFromResource(deployment);
+  return `${deploymentsPath()}/${id}`;
 }
 
 export function newRepositoryPath() {
@@ -28,9 +29,33 @@ export function newRepositoryPath() {
 }
 
 export function repositoryPath<T extends IdResource>(repository: T) {
-  return `/repositories/${repository.id}`;
+  const id = createIdFromResource(repository);
+  return `/repositories/${id}`;
 }
 
 export function editRepositoryPath<T extends IdResource>(repository: T) {
   return `${repositoryPath(repository)}/edit`;
 }
+
+export function branchesPath<T extends IdResource>(repository: T) {
+  return `${repositoryPath(repository)}/branches`;
+}
+
+export function branchPath<R extends IdResource, B extends { name: string }>(
+  repository: R,
+  branch: B
+) {
+  return `${branchesPath(repository)}/${branch.name}`;
+}
+
+export function newBranchPath<T extends IdResource>(repository: T) {
+  return `${branchesPath(repository)}/new`;
+}
+
+const createIdFromResource = (resource: IdResource) => {
+  if (typeof resource === "string") {
+    return resource;
+  } else {
+    return resource.id;
+  }
+};
