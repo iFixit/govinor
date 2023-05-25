@@ -64,6 +64,6 @@ export const getGitCommandEnv = (repositoryId: string) => {
   const repoSSHKeyPath = repositorySSHKeyPath(repositoryId);
   return {
     ...process.env,
-    GIT_SSH_COMMAND: `ssh -i ${repoSSHKeyPath} -o UserKnownHostsFile=~/.ssh/known_hosts`,
+    GIT_SSH_COMMAND: `ssh -i ${repoSSHKeyPath} -o UserKnownHostsFile=~/.ssh/known_hosts -vvv`,
   };
 };
