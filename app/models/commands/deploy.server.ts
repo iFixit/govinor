@@ -48,15 +48,13 @@ export async function deploy({ logger, branch }: DeployOptions): Promise<void> {
       await shell.run(
         fetchLatestChangesWithKeyCommand({
           branchName: branch.name,
-          repoName: branch.repository.name,
-          repoOwner: branch.repository.owner,
+          repositoryId: branch.repository.id,
         })
       );
       await shell.run(
         resetLocalBranchWithKeyCommand({
           branchName: branch.name,
-          repoName: branch.repository.name,
-          repoOwner: branch.repository.owner,
+          repositoryId: branch.repository.id,
         })
       );
     } else {
@@ -71,8 +69,7 @@ export async function deploy({ logger, branch }: DeployOptions): Promise<void> {
         cloneRepoWithDeployKey({
           branchName: branch.name,
           path: branch.handle,
-          repoName: branch.repository.name,
-          repoOwner: branch.repository.owner,
+          repository: branch.repository,
         })
       );
     } else {

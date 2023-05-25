@@ -34,7 +34,7 @@ export async function findRepository(where: Prisma.RepositoryWhereUniqueInput) {
     where,
   });
   if (repo == null) return null;
-  const deployKey = await getRepositorySSHPublicKey(repo.owner, repo.name);
+  const deployKey = await getRepositorySSHPublicKey(repo.id);
   return {
     ...repo,
     deployKey,
@@ -61,11 +61,8 @@ export async function createRepository(input: CreateRepositoryInput) {
       dockerComposeDirectory: input.dockerComposeDirectory,
     },
   });
-  await createRepositorySSHKey(repository.owner, repository.name);
-  const deployKey = await getRepositorySSHPublicKey(
-    repository.owner,
-    repository.name
-  );
+  await createRepositorySSHKey(repository.id);
+  const deployKey = await getRepositorySSHPublicKey(repository.id);
   return {
     ...repository,
     deployKey,
@@ -105,6 +102,6 @@ export async function deleteRepository(
   const deletedRepo = await prisma.repository.delete({
     where,
   });
-  await deleteSSHKeys(deletedRepo.owner, deletedRepo.name);
+  await deleteSSHKeys(deletedRepo.id);
   return deletedRepo;
 }

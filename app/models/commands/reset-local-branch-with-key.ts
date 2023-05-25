@@ -4,14 +4,14 @@ import { SpawnCommand } from "~/lib/shell.server";
 
 interface ResetLocalBranchCommandOptions {
   branchName: string;
-  repoOwner: string;
-  repoName: string;
+  repositoryId: string;
 }
 
 export function resetLocalBranchWithKeyCommand(
   options: ResetLocalBranchCommandOptions
 ): SpawnCommand {
   const repoDirectory = getRepoPath(options.branchName);
+  const repoSSHKeyPath = repositorySSHKeyPath(options.repositoryId);
 
   return {
     type: "spawn-command",
@@ -19,10 +19,7 @@ export function resetLocalBranchWithKeyCommand(
     args: ["reset", "--hard", `origin/${options.branchName}`],
     env: {
       ...process.env,
-      GIT_SSH_COMMAND: `ssh -i ${repositorySSHKeyPath(
-        options.repoOwner,
-        options.repoName
-      )} -F /dev/null`,
+      GIT_SSH_COMMAND: `ssh -i ${repoSSHKeyPath} -F /dev/null`,
     },
     workingDirectory: repoDirectory,
   };

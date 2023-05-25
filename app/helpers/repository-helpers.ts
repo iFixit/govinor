@@ -15,19 +15,18 @@ export function sshKeysDirectory(): string {
   return path.join(storageDirectory(), "ssh-keys");
 }
 
-export function repositorySSHKeyDirectory(owner: string, name: string): string {
-  return path.join(sshKeysDirectory(), owner, name);
+export function repositorySSHKeyDirectory(repositoryId: string): string {
+  return path.join(sshKeysDirectory(), repositoryId);
 }
 
-export function repositorySSHKeyPath(owner: string, name: string): string {
-  return path.join(repositorySSHKeyDirectory(owner, name), SSH_KEY_NAME);
+export function repositorySSHKeyPath(repositoryId: string): string {
+  return path.join(repositorySSHKeyDirectory(repositoryId), SSH_KEY_NAME);
 }
 
 export async function getRepositorySSHPublicKey(
-  repoOwner: string,
-  repoName: string
+  repositoryId: string
 ): Promise<string | null> {
-  const keysDirectory = repositorySSHKeyDirectory(repoOwner, repoName);
+  const keysDirectory = repositorySSHKeyDirectory(repositoryId);
   const publicKeyPath = path.join(keysDirectory, `${SSH_KEY_NAME}.pub`);
 
   try {
@@ -39,11 +38,8 @@ export async function getRepositorySSHPublicKey(
   }
 }
 
-export async function createRepositorySSHKey(
-  repoOwner: string,
-  repoName: string
-) {
-  const keyDir = repositorySSHKeyDirectory(repoOwner, repoName);
+export async function createRepositorySSHKey(repositoryId: string) {
+  const keyDir = repositorySSHKeyDirectory(repositoryId);
 
   await createDirectory(keyDir);
 
@@ -54,12 +50,12 @@ export async function createRepositorySSHKey(
     createSSHKeyCommand({
       keyDir,
       keyName: SSH_KEY_NAME,
-      keyComment: `github deploy key for ${repoOwner}/${repoName}`,
+      keyComment: `github deploy key for ${repositoryId}`,
     })
   );
 }
 
-export async function deleteSSHKeys(repoOwner: string, repoName: string) {
-  const keysDirectory = repositorySSHKeyDirectory(repoOwner, repoName);
+export async function deleteSSHKeys(repositoryId: string) {
+  const keysDirectory = repositorySSHKeyDirectory(repositoryId);
   await deleteDirectory(keysDirectory);
 }
