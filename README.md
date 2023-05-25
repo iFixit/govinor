@@ -116,10 +116,17 @@ Check that govinor service is running by running the following command:
 sudo systemctl status govinor
 ```
 
-Finally as the last step initialize the Caddy config:
+Initialize the Caddy config:
 
 ```sh
 ./scripts/init-caddy.sh
+```
+
+As a final step, you need to configure the Github as a known host for the EC2 instance.
+To do so, ssh into the EC2 instance and run the following command:
+
+```sh
+ssh-keyscan github.com >> ~/.ssh/known_hosts
 ```
 
 ### Scale up Govinor
