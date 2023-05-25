@@ -85,10 +85,11 @@ export default function RepositoryPage() {
   const requestDeleteConfirmation: React.FormEventHandler<HTMLFormElement> = (
     event
   ) => {
-    const confirmed = window.confirm(
-      `Are you sure you want to delete the repository "${repository.fullName}"?`
+    const confirmation = window.prompt(
+      `If you're sure you want to delete the repository "${repository.fullName}", please type its full name as a confirmation.`
     );
-    if (!confirmed) {
+
+    if (confirmation !== repository.fullName) {
       event.preventDefault();
     }
   };
