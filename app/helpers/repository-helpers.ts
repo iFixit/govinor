@@ -59,3 +59,11 @@ export async function deleteSSHKeys(repositoryId: string) {
   const keysDirectory = repositorySSHKeyDirectory(repositoryId);
   await deleteDirectory(keysDirectory);
 }
+
+export const getGitCommandEnv = (repositoryId: string) => {
+  const repoSSHKeyPath = repositorySSHKeyPath(repositoryId);
+  return {
+    ...process.env,
+    GIT_SSH_COMMAND: `ssh -i ${repoSSHKeyPath} -o UserKnownHostsFile=~/.ssh/known_hosts`,
+  };
+};
