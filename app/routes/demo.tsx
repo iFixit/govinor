@@ -1,20 +1,34 @@
 import { ActionArgs, LoaderArgs, redirect } from "@remix-run/node";
 import { Form, useLoaderData } from "@remix-run/react";
-import { MessageType, flashMessage } from "~/lib/flash";
+import fs from "fs/promises";
+import { flashMessage, MessageType } from "~/lib/flash";
 import { ConsoleLogger } from "~/lib/logger";
 import { commitSession, getSession } from "~/lib/session.server";
 import { Shell } from "~/lib/shell.server";
 import { cloneRepoWithDeployKey } from "~/models/commands/clone-repo-with-deploy-key";
+import { findRepository } from "~/models/repository.server";
 
 export let loader = async ({ params }: LoaderArgs) => {
-  return {};
+  return {
+    knownHosts: await getKnownHosts(),
+  };
 };
+
+async function getKnownHosts(): Promise<string> {
+  const knownHostsPath = `${process.env.HOME}/.ssh/known_hosts`;
+  try {
+    const knownHostsContent = await fs.readFile(knownHostsPath, "utf-8");
+    return knownHostsContent;
+  } catch (error) {
+    return `Error reading known_hosts file: ${error}`;
+  }
+}
 
 export const action = async ({ request, params }: ActionArgs) => {
   const formData = await request.formData();
   // const input = Object.fromEntries(formData.entries());
-  const repo = formData.get("repo");
-  if (typeof repo !== "string") {
+  const repoFullName = formData.get("repo");
+  if (typeof repoFullName !== "string") {
     const session = await getSession(request.headers.get("Cookie"));
     flashMessage(session, {
       type: MessageType.Error,
@@ -30,12 +44,19 @@ export const action = async ({ request, params }: ActionArgs) => {
   const logger = new ConsoleLogger();
   const shell = new Shell(logger);
 
-  const [repoOwner, repoName] = repo.split("/");
+  const repository = await findRepository({
+    fullName: repoFullName,
+  });
+
+  if (!repository) {
+    return new Response("Repository not found", {
+      status: 404,
+    });
+  }
 
   await shell.run(
     cloneRepoWithDeployKey({
-      repoOwner,
-      repoName,
+      repository,
       branchName: "main",
       path: "main",
     })
@@ -44,7 +65,7 @@ export const action = async ({ request, params }: ActionArgs) => {
 };
 
 export default function DemoPage() {
-  const {} = useLoaderData<typeof loader>();
+  const { knownHosts } = useLoaderData<typeof loader>();
   return (
     <div className="max-w-4xl mx-auto px-8">
       <header className="py-8">
@@ -52,6 +73,10 @@ export default function DemoPage() {
           Demo
         </h2>
       </header>
+
+      <div className="bg-gray-700/20 rounded-lg p-2 text-white mb-8">
+        <code className="whitespace-pre-wrap break-all">{knownHosts}</code>
+      </div>
 
       <main className="">
         <Form method="post">
