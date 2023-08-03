@@ -46,13 +46,25 @@ export const loader = async ({ params }: LoaderArgs) => {
 export const action = async ({ request, params }: ActionArgs) => {
   const repositoryId = params.id;
   invariant(repositoryId, "Expected a repository id");
+  const repository = await findRepository({
+    id: repositoryId,
+  });
+
+  if (repository == null) {
+    throw new Response("Repository not Found", {
+      status: 404,
+      statusText: "Repository not found",
+    });
+  }
+
   const formData = await request.formData();
   const input = Object.fromEntries(formData.entries());
   const validatedInput = CreateBranchInputSchema.safeParse(input);
+
   if (validatedInput.success) {
     const branch = await createBranch({
       branchName: validatedInput.data.branchName,
-      cloneUrl: "https://github.com/iFixit/react-commerce.git",
+      cloneUrl: `https://github.com/${repository.fullName}.git`,
       dockerComposeDirectory: DEPLOYMENT_DOCKER_COMPOSE_ROOT_DIRECTORY,
       repositoryId,
     });
