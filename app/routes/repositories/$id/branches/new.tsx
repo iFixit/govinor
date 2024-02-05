@@ -12,7 +12,6 @@ import {
   useLoaderData,
   useNavigation,
 } from "@remix-run/react";
-import { DEPLOYMENT_DOCKER_COMPOSE_ROOT_DIRECTORY } from "config/env.server";
 import invariant from "tiny-invariant";
 import { z } from "zod";
 import { deploymentPath, repositoryPath } from "~/helpers/path-helpers";
@@ -65,7 +64,7 @@ export const action = async ({ request, params }: ActionArgs) => {
     const branch = await createBranch({
       branchName: validatedInput.data.branchName,
       cloneUrl: `https://github.com/${repository.fullName}.git`,
-      dockerComposeDirectory: DEPLOYMENT_DOCKER_COMPOSE_ROOT_DIRECTORY,
+      dockerComposeDirectory: repository.dockerComposeDirectory,
       repositoryId,
     });
     const job = await PushJob.performLater({ branch: branch.name });
