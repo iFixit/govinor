@@ -48,9 +48,15 @@ export let links: LinksFunction = () => {
   return [{ rel: "stylesheet", href: styles }];
 };
 
-export const meta: MetaFunction<Loader> = () => {
-  return { title: "Govinor" };
-};
+export function meta() {
+  return [
+    { title: "Govinor" },
+    {
+      name: "description",
+      content: "Govinor is a platform to deploy and preview docker containers.",
+    },
+  ];
+}
 
 export default function App() {
   const { globalMessage, repositories } = useLoaderData<Loader>();

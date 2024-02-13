@@ -1,4 +1,3 @@
-import { MetaFunction } from "@remix-run/node";
 import { Link, useLoaderData } from "@remix-run/react";
 import { DEPLOY_DOMAIN } from "~/../config/env.server";
 import { BranchPreviews } from "~/components/branch-previews";
@@ -8,14 +7,6 @@ import { BreadcrumbItem } from "~/lib/hooks/use-breadcrumbs";
 import { findAllBranches } from "~/models/branch.server";
 import { findAllDeployments } from "~/models/deployment.server";
 import { getSystemStats } from "~/models/system.server";
-
-export let meta: MetaFunction = () => {
-  return {
-    title: "Govinor",
-    description:
-      "Govinor is a platform to deploy and preview docker containers.",
-  };
-};
 
 export type Loader = typeof loader;
 
