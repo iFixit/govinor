@@ -14,7 +14,12 @@ import {
   redirect,
   SerializeFrom,
 } from "@remix-run/node";
-import { Form, useCatch } from "@remix-run/react";
+import {
+  Form,
+  isRouteErrorResponse,
+  useCatch,
+  useRouteError,
+} from "@remix-run/react";
 import dayjs from "dayjs";
 import calendar from "dayjs/plugin/calendar";
 import invariant from "tiny-invariant";
@@ -117,10 +122,15 @@ export const handle = {
         name: "Activities",
         to: deploymentsPath(),
       },
-      {
-        id: data.deployment.id ?? "#",
-        name: data.deployment.name,
-      },
+      data?.deployment
+        ? {
+            id: data.deployment.id ?? "#",
+            name: data.deployment.name,
+          }
+        : {
+            id: "#404",
+            name: "Deployment not found",
+          },
     ];
   },
 };
@@ -280,12 +290,23 @@ function DeployButton({ disabled }: DeployButtonProps) {
   );
 }
 
-export function CatchBoundary() {
-  const caught = useCatch();
+export function ErrorBoundary() {
+  const error = useRouteError();
+
+  if (isRouteErrorResponse(error)) {
+    return (
+      <div className="w-[500px] py-10 mx-auto text-center text-white">
+        <h1 className="text-4xl leading-tight font-bold">{error.status}</h1>
+        <p>{error.statusText}</p>
+      </div>
+    );
+  }
+  const errorMessage = error instanceof Error ? error.message : "Unknown error";
   return (
-    <div className="w-[500px] py-10 mx-auto text-center">
-      <h1 className="text-4xl leading-tight font-bold">{caught.status}</h1>
-      <p>{caught.statusText}</p>
+    <div className="w-[500px] py-10 mx-auto text-center text-white">
+      <h1 className="text-4xl leading-tight font-bold">Uh oh...</h1>
+      <p>Something went wrong</p>
+      <pre>{errorMessage}</pre>
     </div>
   );
 }

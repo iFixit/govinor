@@ -6,6 +6,7 @@ import {
   json,
 } from "@remix-run/node";
 import {
+  isRouteErrorResponse,
   Links,
   LiveReload,
   Meta,
@@ -13,6 +14,7 @@ import {
   Scripts,
   ScrollRestoration,
   useLoaderData,
+  useRouteError,
 } from "@remix-run/react";
 import { requireAuthorization } from "~/lib/auth.server";
 import { commitSession, getSession } from "~/lib/session.server";
@@ -79,8 +81,13 @@ export default function App() {
   );
 }
 
-export const ErrorBoundary: ErrorBoundaryComponent = ({ error }) => {
+export function ErrorBoundary() {
+  const error = useRouteError();
   console.error(error);
+  let statusCode: number = 500;
+  if (isRouteErrorResponse(error)) {
+    statusCode = error.status;
+  }
   return (
     <html lang="en" className="h-full bg-gray-900">
       <head>
@@ -91,7 +98,11 @@ export const ErrorBoundary: ErrorBoundaryComponent = ({ error }) => {
       <body className="h-full">
         <main className="grid min-h-full place-items-center px-6 py-24 sm:py-32 lg:px-8">
           <div className="text-center">
-            <p className="text-base font-semibold text-indigo-600">500</p>
+            {statusCode && (
+              <p className="text-base font-semibold text-indigo-600">
+                {statusCode}
+              </p>
+            )}
             <h1 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-5xl">
               Ops, something not working 😬
             </h1>
@@ -118,4 +129,4 @@ export const ErrorBoundary: ErrorBoundaryComponent = ({ error }) => {
       </body>
     </html>
   );
-};
+}
