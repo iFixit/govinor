@@ -23,7 +23,8 @@
     "start:remix": "node -r dotenv/config node_modules/.bin/remix-serve build",
     "start:workers": "cross-env NODE_ENV=production ts-node --transpile-only -r tsconfig-paths/register -r dotenv/config workers/index.ts",
     "deploy": "./deploy.sh",
-    "postinstall": "remix setup node"
+    "postinstall": "remix setup node",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@headlessui/react": "1.7.14",

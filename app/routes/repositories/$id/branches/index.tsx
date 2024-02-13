@@ -134,7 +134,7 @@ export function BranchActions({ branch }: BranchActionsProps) {
             {({ active }) => (
               <Form
                 action={branchesPath(repository)}
-                method="post"
+                method="POST"
                 reloadDocument
                 className={classNames(
                   active ? "bg-gray-100" : "",
@@ -161,7 +161,7 @@ export function BranchActions({ branch }: BranchActionsProps) {
             {({ active }) => (
               <Form
                 action={branchesPath(repository)}
-                method="post"
+                method="POST"
                 reloadDocument
                 className={classNames(
                   active ? "bg-red-100" : "",

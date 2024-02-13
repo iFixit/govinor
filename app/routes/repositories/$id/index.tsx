@@ -192,7 +192,7 @@ export default function RepositoryPage() {
             >
               Edit
             </Link>
-            <Form method="post" onSubmit={requestDeleteConfirmation}>
+            <Form method="POST" onSubmit={requestDeleteConfirmation}>
               <button
                 type="submit"
                 name="method"

@@ -267,7 +267,7 @@ interface DeployButtonProps {
 
 function DeployButton({ disabled }: DeployButtonProps) {
   return (
-    <Form method="post" className="">
+    <Form method="POST" className="">
       <button
         type="submit"
         name="_action"

@@ -85,7 +85,7 @@ export default function EditRepositoryPage() {
       </header>
 
       <main className="">
-        <Form method="post">
+        <Form method="POST">
           <div className="space-y-12">
             <div className="border-b border-white/10 pb-12">
               <div className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
