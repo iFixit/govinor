@@ -16,13 +16,23 @@ checkRedisConnection().then(() => {
 
 process.on("SIGTERM", () => {
   console.info("SIGTERM signal received.");
+  gracefullyShutdown();
+});
+
+process.on("SIGINT", () => {
+  console.info("SIGINT signal received.");
+  gracefullyShutdown();
+});
+
+function gracefullyShutdown() {
   if (pushJob) {
     pushJob.scheduler.close();
   }
   if (deleteDeploymentJob) {
     deleteDeploymentJob.scheduler.close();
   }
-});
+  process.exit();
+}
 
 function checkRedisConnection() {
   return new Promise((resolve, reject) => {
