@@ -1,5 +1,6 @@
 import fs from "fs/promises";
 import getPort from "get-port";
+import invariant from "tiny-invariant";
 import {
   DEPLOYMENTS_DIRECTORY,
   DEPLOY_DOMAIN,
@@ -8,14 +9,13 @@ import {
   STRAPI_TRANSFER_TOKEN_SALT,
 } from "~/../config/env.server";
 import { isPresent } from "~/helpers/application-helpers";
-import { getRepoDeployPath, getRepoPath } from "~/helpers/deployment-helpers";
+import { getRepoDeployPath } from "~/helpers/deployment-helpers";
 import { Logger } from "~/lib/logger";
 import { Shell, SpawnCommand } from "~/lib/shell.server";
 import { Branch } from "../branch.server";
-import { cloneRepoCommand } from "./clone-repo.server";
-import { cloneRepoWithDeployKey } from "./clone-repo-with-deploy-key";
-import { fetchLatestChangesWithKeyCommand } from "./fetch-latest-changes-with-deploy-key";
-import { resetLocalBranchWithKeyCommand } from "./reset-local-branch-with-key";
+import { cloneRepoCommand } from "./clone-repo";
+import { fetchLatestChangesCommand } from "./fetch-latest-changes";
+import { resetLocalBranchCommand } from "./reset-local-branch";
 
 interface BaseOptions {
   logger?: Logger;
@@ -35,6 +35,7 @@ interface DeployOptions extends BaseOptions {
  * @param options Options for the deployment.
  */
 export async function deploy({ logger, branch }: DeployOptions): Promise<void> {
+  invariant(branch.repository, "Branch must have a repository to deploy.");
   const info = createInfo(logger);
   const shell = new Shell(logger);
   await shell.run(dockerSystemPruneCommand());
@@ -43,44 +44,27 @@ export async function deploy({ logger, branch }: DeployOptions): Promise<void> {
     await info(
       `Deployment for branch "${branch.name}" already exists. Pulling latest changes to update.`
     );
-    if (branch.repository) {
-      await info("Using deploy key to fetch latest changes...");
-      await shell.run(
-        fetchLatestChangesWithKeyCommand({
-          branchName: branch.name,
-          repositoryId: branch.repository.id,
-        })
-      );
-      await shell.run(
-        resetLocalBranchWithKeyCommand({
-          branchName: branch.name,
-          repositoryId: branch.repository.id,
-        })
-      );
-    } else {
-      await shell.run(fetchLatestChangesCommand({ branchName: branch.name }));
-      await shell.run(resetLocalBranchCommand({ branchName: branch.name }));
-    }
+    await shell.run(
+      fetchLatestChangesCommand({
+        branchName: branch.name,
+        repositoryId: branch.repository.id,
+      })
+    );
+    await shell.run(
+      resetLocalBranchCommand({
+        branchName: branch.name,
+        repositoryId: branch.repository.id,
+      })
+    );
   } else {
     await info(`Creating deployment assets for branch "${branch.name}".`);
-    if (branch.repository) {
-      await info("Using deploy key to clone repo...");
-      await shell.run(
-        cloneRepoWithDeployKey({
-          branchName: branch.name,
-          path: branch.handle,
-          repository: branch.repository,
-        })
-      );
-    } else {
-      await shell.run(
-        cloneRepoCommand({
-          branchName: branch.name,
-          cloneUrl: branch.cloneUrl,
-          path: branch.handle,
-        })
-      );
-    }
+    await shell.run(
+      cloneRepoCommand({
+        branchName: branch.name,
+        path: branch.handle,
+        repository: branch.repository,
+      })
+    );
   }
   const envFileExists = await checkEnvFileExists(
     branch.handle,
@@ -337,38 +321,6 @@ function addCaddyRouteCommand({
     type: "spawn-command",
     command: `curl localhost:2019/config/apps/http/servers/dashboard/routes -X POST -H "Content-Type: application/json" -d '{ "@id": "${branchHandle}", "handle": [ { "handler": "reverse_proxy", "transport": { "protocol": "http" }, "upstreams": [ { "dial": "localhost:${port}" } ] } ], "match": [ { "host": [ "${branchHandle}.${DEPLOY_DOMAIN}" ] } ] }'`,
     useShellSyntax: true,
-  };
-}
-
-interface ResetLocalBranchCommandOptions {
-  branchName: string;
-}
-
-function resetLocalBranchCommand({
-  branchName,
-}: ResetLocalBranchCommandOptions): SpawnCommand {
-  const repoDirectory = getRepoPath(branchName);
-  return {
-    type: "spawn-command",
-    command: "git",
-    args: ["reset", "--hard", `origin/${branchName}`],
-    workingDirectory: repoDirectory,
-  };
-}
-
-interface FetchLatestChangesCommandOptions {
-  branchName: string;
-}
-
-function fetchLatestChangesCommand({
-  branchName,
-}: FetchLatestChangesCommandOptions): SpawnCommand {
-  const workingDirectory = getRepoPath(branchName);
-  return {
-    type: "spawn-command",
-    command: "git",
-    args: ["fetch", "origin"],
-    workingDirectory,
   };
 }
 

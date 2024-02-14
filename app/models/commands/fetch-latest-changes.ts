@@ -2,21 +2,21 @@ import { getRepoPath } from "~/helpers/deployment-helpers";
 import { getGitCommandEnv } from "~/helpers/repository-helpers";
 import { SpawnCommand } from "~/lib/shell.server";
 
-interface ResetLocalBranchCommandOptions {
+interface FetchLatestChangesCommandOptions {
   branchName: string;
   repositoryId: string;
 }
 
-export function resetLocalBranchWithKeyCommand(
-  options: ResetLocalBranchCommandOptions
+export function fetchLatestChangesCommand(
+  options: FetchLatestChangesCommandOptions
 ): SpawnCommand {
-  const repoDirectory = getRepoPath(options.branchName);
+  const workingDirectory = getRepoPath(options.branchName);
 
   return {
     type: "spawn-command",
     command: "git",
-    args: ["reset", "--hard", `origin/${options.branchName}`],
+    args: ["fetch", "origin"],
     env: getGitCommandEnv(options.repositoryId),
-    workingDirectory: repoDirectory,
+    workingDirectory,
   };
 }
