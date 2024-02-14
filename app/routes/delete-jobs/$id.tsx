@@ -1,13 +1,6 @@
 import { CheckIcon } from "@heroicons/react/20/solid";
-import {
-  ArrowPathRoundedSquareIcon,
-  EyeIcon,
-} from "@heroicons/react/24/outline";
-import {
-  ArrowDownTrayIcon,
-  ExclamationTriangleIcon,
-  RocketLaunchIcon,
-} from "@heroicons/react/24/solid";
+import { ArrowPathRoundedSquareIcon } from "@heroicons/react/24/outline";
+import { ArrowDownTrayIcon, RocketLaunchIcon } from "@heroicons/react/24/solid";
 import {
   ActionArgs,
   LoaderArgs,
@@ -18,50 +11,88 @@ import { Form, isRouteErrorResponse, useRouteError } from "@remix-run/react";
 import dayjs from "dayjs";
 import calendar from "dayjs/plugin/calendar";
 import invariant from "tiny-invariant";
-import { DEPLOY_DOMAIN } from "~/../config/env.server";
 import Spinner from "~/components/spinner";
 import { badRequest } from "~/helpers/application-helpers";
 import { getHumanReadableDateTime } from "~/helpers/date-helpers";
-import {
-  branchPreviewUrl,
-  deploymentPath,
-  deploymentsPath,
-} from "~/helpers/path-helpers";
+import { deleteJobsPath, deploymentPath } from "~/helpers/path-helpers";
 import { classNames } from "~/helpers/ui-helpers";
+import {
+  DeleteDeploymentJob,
+  DeleteDeploymentPayload,
+} from "~/jobs/delete-deployment-job.server";
 import { PushJob } from "~/jobs/push-job.server";
 import { flashMessage, MessageType } from "~/lib/flash";
 import { useSWRData } from "~/lib/hooks";
 import { BreadcrumbItem } from "~/lib/hooks/use-breadcrumbs";
+import { JobProgressLogger, ProgressLog } from "~/lib/logger";
 import { commitSession, getSession } from "~/lib/session.server";
-import { Branch, findBranch } from "~/models/branch.server";
-import { Deployment, findDeployment } from "~/models/deployment.server";
 
 dayjs.extend(calendar);
 
 export type Loader = typeof loader;
 
+export interface DeleteJob {
+  id?: string;
+  name: string;
+  data: DeleteDeploymentPayload;
+  status: string;
+  timestamp: string;
+  attempts: number;
+  failedReason: string;
+  processedOn: string;
+  finishedOn: string;
+  returnValue?: any;
+  progress?: ProgressLog;
+}
+
 export let loader = async ({ params }: LoaderArgs) => {
   invariant(params.id, "Expected params.id");
 
-  const deployment = await findDeployment(params.id);
-  if (deployment == null) {
+  const job = await findDeleteDeploymentJob(params.id);
+  if (job == null) {
     throw new Response("Deployment not Found", {
       status: 404,
       statusText: "Deployment not found",
     });
   }
 
-  const branch = await findBranch(deployment.data.branch);
-
   return {
-    branch,
-    deployment,
-    deployDomain: DEPLOY_DOMAIN,
+    job,
   };
+
+  async function findDeleteDeploymentJob(
+    id: string
+  ): Promise<DeleteJob | null> {
+    const rawJob = await DeleteDeploymentJob.find(id);
+    if (rawJob == null) {
+      return null;
+    }
+    let progress = JobProgressLogger.isProgressLog(rawJob.progress)
+      ? rawJob.progress
+      : undefined;
+
+    return {
+      id,
+      name: rawJob.name,
+      data: rawJob.data,
+      status: await rawJob.getState(),
+      timestamp: new Date(rawJob.timestamp).toISOString(),
+      attempts: rawJob.attemptsMade,
+      failedReason: rawJob.failedReason,
+      processedOn: rawJob.processedOn
+        ? new Date(rawJob.processedOn).toISOString()
+        : "",
+      finishedOn: rawJob.finishedOn
+        ? new Date(rawJob.finishedOn).toISOString()
+        : "",
+      returnValue: rawJob.returnvalue,
+      progress,
+    };
+  }
 };
 
 enum ActionType {
-  Redeploy = "redeploy",
+  Retry = "retry",
 }
 
 export const action = async ({ request, params }: ActionArgs) => {
@@ -79,7 +110,7 @@ export const action = async ({ request, params }: ActionArgs) => {
   }
 
   switch (action) {
-    case ActionType.Redeploy: {
+    case ActionType.Retry: {
       const isFailed = await rawJob.isFailed();
       const session = await getSession(request.headers.get("Cookie"));
       if (isFailed) {
@@ -113,14 +144,14 @@ export const handle = {
   getBreadcrumbs: (data: SerializeFrom<Loader>): BreadcrumbItem[] => {
     return [
       {
-        id: "activities",
-        name: "Activities",
-        to: deploymentsPath(),
+        id: "delete-jobs",
+        name: "Delete Jobs",
+        to: deleteJobsPath(),
       },
-      data?.deployment
+      data?.job
         ? {
-            id: data.deployment.id ?? "#",
-            name: data.deployment.name,
+            id: data.job.id ?? "#",
+            name: data.job.name,
           }
         : {
             id: "#404",
@@ -130,45 +161,19 @@ export const handle = {
   },
 };
 
-export default function DeploymentPage() {
-  let { deployment, branch, deployDomain } = useSWRData<Loader>();
+export default function DeleteJobPage() {
+  let { job } = useSWRData<Loader>();
 
   return (
     <>
-      <DeploymentHeader
-        deployment={deployment}
-        branch={branch}
-        deployDomain={deployDomain}
-      />
+      <JobHeader job={job} />
       <main>
         <div className="">
-          {branch == null && (
-            <div className="bg-yellow-700/10 p-8">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <ExclamationTriangleIcon
-                    className="h-5 w-5 text-yellow-500"
-                    aria-hidden="true"
-                  />
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-yellow-700">
-                    Deployment not available
-                  </h3>
-                  <div className="mt-2 text-sm text-yellow-800">
-                    <p>
-                      The deployment has been deleted or has yet to be created
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
           <h2 className="p-4 text-base font-semibold leading-7 text-white sm:px-6 lg:px-8">
             Logs
           </h2>
           <div className="px-4 py-5 sm:p-6 min-h-[200px] bg-gray-700/10 text-gray-300 overflow-scroll border-y border-white/10">
-            {deployment.progress?.lines.map((line, index) => (
+            {job.progress?.lines.map((line, index) => (
               <pre key={index} className="whitespace-pre-wrap">
                 {line}
               </pre>
@@ -180,29 +185,21 @@ export default function DeploymentPage() {
   );
 }
 
-interface DeploymentHeaderProps {
-  deployment: Deployment;
-  branch: Branch | null;
-  deployDomain: string;
+interface JobHeaderProps {
+  job: DeleteJob;
 }
 
-export function DeploymentHeader({
-  deployment,
-  branch,
-  deployDomain,
-}: DeploymentHeaderProps) {
-  const timestamp = dayjs(deployment.timestamp);
-  const processedOn = dayjs(deployment.processedOn);
-  const finishedOn = dayjs(deployment.finishedOn);
-  const shouldViewLink =
-    branch != null && finishedOn.isValid() && deployment.status === "completed";
-  const canRedeploy = ["failed", "completed"].includes(deployment.status);
+export function JobHeader({ job }: JobHeaderProps) {
+  const timestamp = dayjs(job.timestamp);
+  const processedOn = dayjs(job.processedOn);
+  const finishedOn = dayjs(job.finishedOn);
+  const canRetry = ["failed"].includes(job.status);
 
   return (
     <div className="lg:flex lg:items-center lg:justify-between p-8">
       <div className="min-w-0 flex-1">
         <h2 className="mt-2 text-2xl font-bold leading-7 text-white sm:truncate sm:text-3xl sm:tracking-tight">
-          {deployment.name}
+          {job.name}
         </h2>
         <div className="mt-1 flex flex-col sm:mt-0 sm:flex-row sm:flex-wrap sm:space-x-6">
           <div className="mt-2 flex items-center text-sm text-gray-300">
@@ -238,35 +235,23 @@ export function DeploymentHeader({
         </div>
       </div>
       <div className="mt-5 flex lg:ml-4 lg:mt-0 space-x-3">
-        {shouldViewLink && (
-          <span className="">
-            <a
-              href={branchPreviewUrl({ handle: branch.handle, deployDomain })}
-              target="_blank"
-              className="inline-flex items-center rounded-md bg-white/10 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-white/20"
-            >
-              <EyeIcon className="-ml-0.5 mr-1.5 h-5 w-5" aria-hidden="true" />
-              View
-            </a>
-          </span>
-        )}
-        {canRedeploy && <DeployButton disabled={!canRedeploy} />}
+        {canRetry && <RetryButton disabled={!canRetry} />}
       </div>
     </div>
   );
 }
 
-interface DeployButtonProps {
+interface RetryButtonProps {
   disabled?: boolean;
 }
 
-function DeployButton({ disabled }: DeployButtonProps) {
+function RetryButton({ disabled }: RetryButtonProps) {
   return (
     <Form method="POST" className="">
       <button
         type="submit"
         name="_action"
-        value={ActionType.Redeploy}
+        value={ActionType.Retry}
         disabled={disabled}
         className={classNames(
           "inline-flex items-center rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500",
@@ -279,7 +264,7 @@ function DeployButton({ disabled }: DeployButtonProps) {
           className="-ml-0.5 mr-1.5 h-5 w-5"
           aria-hidden="true"
         />
-        Deploy again
+        Retry
       </button>
     </Form>
   );
