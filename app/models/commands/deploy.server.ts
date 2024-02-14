@@ -186,12 +186,19 @@ export async function destroy({
   const branchFolderExists = await hasBranchFolder(branch.handle);
   if (branchFolderExists) {
     await info("Stopping deployment..");
-    await shell.run(
-      dockerComposeDownCommand({
-        branchHandle: branch.handle,
-        rootDirectory: branch.dockerComposeDirectory,
-      })
-    );
+    try {
+      await shell.run(
+        dockerComposeDownCommand({
+          branchHandle: branch.handle,
+          rootDirectory: branch.dockerComposeDirectory,
+        })
+      );
+    } catch (error) {
+      await info("Docker compose down failed..");
+      if (error instanceof Error) {
+        await info(`Reason: ${error.message}`);
+      }
+    }
   }
   await info("Prune unused docker stuff..");
   await shell.run(dockerSystemPruneCommand());
