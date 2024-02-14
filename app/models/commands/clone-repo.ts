@@ -20,7 +20,15 @@ export function cloneRepoCommand(
   return {
     type: "spawn-command",
     command: "git",
-    args: ["clone", "-b", options.branchName, cloneUrl, options.path],
+    args: [
+      "clone",
+      "--depth",
+      "1",
+      "-b",
+      options.branchName,
+      cloneUrl,
+      options.path,
+    ],
     env: getGitCommandEnv(options.repository.id),
     workingDirectory: DEPLOYMENTS_DIRECTORY,
   };

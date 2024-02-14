@@ -15,7 +15,7 @@ export function fetchLatestChangesCommand(
   return {
     type: "spawn-command",
     command: "git",
-    args: ["fetch", "origin"],
+    args: ["fetch", "--depth", "1", "origin"],
     env: getGitCommandEnv(options.repositoryId),
     workingDirectory,
   };
