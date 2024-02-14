@@ -14,13 +14,15 @@ import invariant from "tiny-invariant";
 import Spinner from "~/components/spinner";
 import { badRequest } from "~/helpers/application-helpers";
 import { getHumanReadableDateTime } from "~/helpers/date-helpers";
-import { deleteJobsPath, deploymentPath } from "~/helpers/path-helpers";
+import {
+  deleteDeploymentJobPath,
+  deleteDeploymentJobsPath,
+} from "~/helpers/path-helpers";
 import { classNames } from "~/helpers/ui-helpers";
 import {
   DeleteDeploymentJob,
   DeleteDeploymentPayload,
 } from "~/jobs/delete-deployment-job.server";
-import { PushJob } from "~/jobs/push-job.server";
 import { flashMessage, MessageType } from "~/lib/flash";
 import { useSWRData } from "~/lib/hooks";
 import { BreadcrumbItem } from "~/lib/hooks/use-breadcrumbs";
@@ -100,7 +102,7 @@ export const action = async ({ request, params }: ActionArgs) => {
   const formData = await request.formData();
   const action = formData.get("_action");
 
-  const rawJob = await PushJob.find(params.id);
+  const rawJob = await DeleteDeploymentJob.find(params.id);
 
   if (rawJob == null) {
     throw new Response("Deployment not Found", {
@@ -119,18 +121,18 @@ export const action = async ({ request, params }: ActionArgs) => {
           type: MessageType.Success,
           text: "Deploy is being retried",
         });
-        throw redirect(deploymentPath(rawJob), {
+        throw redirect(deleteDeploymentJobPath(rawJob), {
           headers: {
             "Set-Cookie": await commitSession(session),
           },
         });
       }
-      const job = await PushJob.performLater(rawJob.data);
+      const job = await DeleteDeploymentJob.performLater(rawJob.data);
       flashMessage(session, {
         type: MessageType.Success,
         text: "Started a new deploy",
       });
-      throw redirect(deploymentPath(job), {
+      throw redirect(deleteDeploymentJobPath(job), {
         headers: {
           "Set-Cookie": await commitSession(session),
         },
@@ -146,7 +148,7 @@ export const handle = {
       {
         id: "delete-jobs",
         name: "Delete Jobs",
-        to: deleteJobsPath(),
+        to: deleteDeploymentJobsPath(),
       },
       data?.job
         ? {

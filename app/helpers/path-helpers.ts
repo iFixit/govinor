@@ -52,8 +52,13 @@ export function newBranchPath<T extends IdResource>(repository: T) {
   return `${branchesPath(repository)}/new`;
 }
 
-export function deleteJobsPath() {
+export function deleteDeploymentJobsPath() {
   return "/delete-jobs";
+}
+
+export function deleteDeploymentJobPath<T extends IdResource>(job: T) {
+  const id = createIdFromResource(job);
+  return `${deleteDeploymentJobsPath()}/${id}`;
 }
 
 // Utils
