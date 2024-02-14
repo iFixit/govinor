@@ -1,5 +1,6 @@
 import { ActionFunction, json } from "@remix-run/node";
 import crypto from "crypto";
+import invariant from "tiny-invariant";
 import { z } from "zod";
 import { GITHUB_WEBHOOK_SECRET } from "~/../config/env.server";
 import { DeleteDeploymentJob } from "~/jobs/delete-deployment-job.server";
@@ -19,30 +20,50 @@ export const action: ActionFunction = async ({ request }) => {
     event,
   };
 
-  if (webhook.event === "push" && webhook.payload.deleted === false) {
-    const payload = webhook.payload;
-    const branch = payload.ref.replace("refs/heads/", "");
-    response.branch = branch;
-    response.pusher = payload.pusher.name;
+  if (isBranchPushWebhook()) {
+    await createNewDeployment();
+  } else if (isBranchDeleteWebhook()) {
+    await deleteDeployment();
+  }
+
+  return json(response, 200);
+
+  function isBranchPushWebhook() {
+    return (
+      webhook.event === "push" &&
+      !webhook.payload.deleted &&
+      webhook.payload.ref.startsWith("refs/heads/")
+    );
+  }
+
+  function isBranchDeleteWebhook() {
+    return webhook.event === "delete" && webhook.payload.ref_type === "branch";
+  }
+
+  async function createNewDeployment() {
+    invariant(webhook.event === "push");
+    const branchName = webhook.payload.ref.replace("refs/heads/", "");
+    response.branch = branchName;
+    response.pusher = webhook.payload.pusher.name;
     const repository = await findRepository({
-      fullName: payload.repository.full_name,
+      fullName: webhook.payload.repository.full_name,
     });
     if (repository == null) {
       throw json({ message: "Repository not found" }, 404);
     }
     await createBranch({
-      branchName: branch,
-      cloneUrl: payload.repository.clone_url,
+      branchName,
+      cloneUrl: webhook.payload.repository.clone_url,
       dockerComposeDirectory: repository.dockerComposeDirectory,
       repositoryId: repository.id,
     });
     await PushJob.performLater({
-      branch,
+      branch: branchName,
     });
-  } else if (
-    webhook.event === "delete" &&
-    webhook.payload.ref_type === "branch"
-  ) {
+  }
+
+  async function deleteDeployment() {
+    invariant(webhook.event === "delete");
     // The delete event ref is the branch name
     const branch = webhook.payload.ref;
     response.branch = branch;
@@ -50,7 +71,6 @@ export const action: ActionFunction = async ({ request }) => {
       branch,
     });
   }
-  return json(response, 200);
 };
 
 async function verifyGithubPayload(request: Request): Promise<GithubEvent> {
