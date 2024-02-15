@@ -21,7 +21,7 @@
     "db:studio": "npx prisma studio",
     "setup": "prisma migrate dev && prisma db seed",
     "start": "npm run start:remix & npm run start:workers",
-    "start:remix": "node -r dotenv/config node_modules/.bin/remix-serve build",
+    "start:remix": "node -r dotenv/config node_modules/.bin/remix-serve ./build/index.js",
     "start:workers": "cross-env NODE_ENV=production ts-node --transpile-only -r tsconfig-paths/register -r dotenv/config workers/index.ts",
     "deploy": "./deploy.sh",
     "typecheck": "tsc --noEmit"
