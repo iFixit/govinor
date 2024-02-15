@@ -11,9 +11,13 @@ import type { RepositoryListItem } from "~/models/repository.server";
 
 interface DesktopSidebarProps {
   repositories: RepositoryListItem[];
+  nodeVersion: string;
 }
 
-export function DesktopSidebar({ repositories }: DesktopSidebarProps) {
+export function DesktopSidebar({
+  repositories,
+  nodeVersion,
+}: DesktopSidebarProps) {
   return (
     <div className="hidden xl:fixed xl:inset-y-0 xl:z-50 xl:flex xl:w-72 xl:flex-col">
       {/* Sidebar component, swap this element with another sidebar if you like */}
@@ -95,6 +99,11 @@ export function DesktopSidebar({ repositories }: DesktopSidebarProps) {
             </li>
           </ul>
         </nav>
+        <div className="py-4">
+          <p className="text-gray-700 text-sm font-semibold">
+            Node.js {nodeVersion}
+          </p>
+        </div>
       </div>
     </div>
   );

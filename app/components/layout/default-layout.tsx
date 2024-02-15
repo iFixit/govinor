@@ -6,9 +6,14 @@ import { TopBar } from "./top-bar";
 
 type DefaultLayoutProps = React.PropsWithChildren<{
   repositories: RepositoryListItem[];
+  nodeVersion: string;
 }>;
 
-export function DefaultLayout({ children, repositories }: DefaultLayoutProps) {
+export function DefaultLayout({
+  children,
+  repositories,
+  nodeVersion,
+}: DefaultLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
@@ -19,7 +24,7 @@ export function DefaultLayout({ children, repositories }: DefaultLayoutProps) {
         repositories={repositories}
       />
 
-      <DesktopSidebar repositories={repositories} />
+      <DesktopSidebar repositories={repositories} nodeVersion={nodeVersion} />
 
       <div className="xl:pl-72">
         <TopBar onOpenSidebar={() => setSidebarOpen(true)} />

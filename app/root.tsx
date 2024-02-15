@@ -35,7 +35,7 @@ export let loader = async ({ request }: LoaderArgs) => {
   const repositories = await findAllRepositories();
 
   return json(
-    { globalMessage, repositories },
+    { globalMessage, repositories, nodeVersion: process.version },
     {
       headers: {
         "Set-Cookie": await commitSession(session),
@@ -59,7 +59,7 @@ export function meta() {
 }
 
 export default function App() {
-  const { globalMessage, repositories } = useLoaderData<Loader>();
+  const { globalMessage, repositories, nodeVersion } = useLoaderData<Loader>();
   return (
     <html lang="en" className="h-full bg-gray-900">
       <head>
@@ -69,7 +69,7 @@ export default function App() {
         <Links />
       </head>
       <body className="h-full">
-        <DefaultLayout repositories={repositories}>
+        <DefaultLayout repositories={repositories} nodeVersion={nodeVersion}>
           <Outlet />
         </DefaultLayout>
         {globalMessage && (
