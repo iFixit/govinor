@@ -2,8 +2,8 @@ import { Link } from "@remix-run/react";
 import dayjs from "dayjs";
 import { StatusIndicator } from "~/components/status-indicator";
 import {
-  getHumanReadableDateTime,
   getHumanReadableDuration,
+  useHumanReadableDateTime,
 } from "~/helpers/date-helpers";
 
 export interface JobTableRowProps {
@@ -41,7 +41,7 @@ export function JobTableRow({ job }: JobTableRowProps) {
       <td className="hidden py-4 pl-0 pr-4 sm:table-cell sm:pr-8 whitespace-nowrap">
         <div className="flex gap-x-3">
           <div className="text-sm leading-6 text-gray-400">
-            {getHumanReadableDateTime(timestamp)}
+            {useHumanReadableDateTime(timestamp)}
           </div>
         </div>
       </td>

@@ -2,7 +2,6 @@ import dayjs from "dayjs";
 import calendar from "dayjs/plugin/calendar";
 import duration from "dayjs/plugin/duration";
 import relativeTime from "dayjs/plugin/relativeTime";
-import { useEffect } from "react";
 import { useIsMountedState } from "~/lib/hooks/use-is-mounted-state";
 
 dayjs.extend(calendar);
@@ -20,7 +19,6 @@ export function getHumanReadableDateTime(date: dayjs.Dayjs) {
   });
 }
 
-// Return a human readable date time string on the client, null on the server
 export function useHumanReadableDateTime(date: dayjs.Dayjs) {
   const isMounted = useIsMountedState();
   return isMounted ? getHumanReadableDateTime(date) : null;

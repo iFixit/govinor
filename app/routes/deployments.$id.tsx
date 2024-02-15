@@ -11,8 +11,8 @@ import {
 import {
   ActionFunctionArgs,
   LoaderFunctionArgs,
-  redirect,
   SerializeFrom,
+  redirect,
 } from "@remix-run/node";
 import { Form, isRouteErrorResponse, useRouteError } from "@remix-run/react";
 import dayjs from "dayjs";
@@ -21,7 +21,7 @@ import invariant from "tiny-invariant";
 import { DEPLOY_DOMAIN } from "~/../config/env.server";
 import Spinner from "~/components/spinner";
 import { badRequest } from "~/helpers/application-helpers";
-import { getHumanReadableDateTime } from "~/helpers/date-helpers";
+import { useHumanReadableDateTime } from "~/helpers/date-helpers";
 import {
   branchPreviewUrl,
   deploymentPath,
@@ -29,7 +29,7 @@ import {
 } from "~/helpers/path-helpers";
 import { classNames } from "~/helpers/ui-helpers";
 import { PushJob } from "~/jobs/push-job.server";
-import { flashMessage, MessageType } from "~/lib/flash";
+import { MessageType, flashMessage } from "~/lib/flash";
 import { useSWRData } from "~/lib/hooks";
 import { BreadcrumbItem } from "~/lib/hooks/use-breadcrumbs";
 import { commitSession, getSession } from "~/lib/session.server";
@@ -210,14 +210,14 @@ export function DeploymentHeader({
               className="mr-1.5 h-5 w-5 flex-shrink-0 text-gray-500"
               aria-hidden="true"
             />
-            Created: {getHumanReadableDateTime(timestamp)}
+            Created: {useHumanReadableDateTime(timestamp)}
           </div>
           <div className="mt-2 flex items-center text-sm text-gray-300">
             <RocketLaunchIcon
               className="mr-1.5 h-5 w-5 flex-shrink-0 text-gray-500"
               aria-hidden="true"
             />
-            Processed: {getHumanReadableDateTime(processedOn)}
+            Processed: {useHumanReadableDateTime(processedOn)}
           </div>
           <div className="mt-2 flex items-center text-sm text-gray-300">
             {finishedOn.isValid() ? (
@@ -226,7 +226,7 @@ export function DeploymentHeader({
                   className="mr-1.5 h-5 w-5 flex-shrink-0 text-gray-500"
                   aria-hidden="true"
                 />
-                Completed: {getHumanReadableDateTime(finishedOn)}
+                Completed: {useHumanReadableDateTime(finishedOn)}
               </>
             ) : (
               <>
