@@ -1,5 +1,5 @@
 import type { BranchItem } from "~/models/branch.server";
-import { BranchActions } from "~/routes/repositories/$id/branches";
+import { BranchActions } from "~/routes/repositories.$id.branches._index";
 
 interface BranchPreviewsProps {
   branches: BranchItem[];
