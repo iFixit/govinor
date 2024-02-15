@@ -75,12 +75,18 @@ Follow the instructions for ["Ubuntu"](https://caddyserver.com/docs/install#debi
 
 #### Install Node.js
 
-To make it easier to manage and upgrade Node versions, we recommend using [Node Version Manager](https://github.com/nvm-sh/nvm#installing-and-updating).
+To make it easier to manage and upgrade Node versions, Govinor uses [Node Version Manager](https://github.com/nvm-sh/nvm#installing-and-updating).
 
 To install Node.js, run the following command:
 
 ```sh
-nvm install 14
+nvm install 20
+```
+
+Let's also set the default Node version to the one we just installed:
+
+```sh
+nvm alias default 20
 ```
 
 ### Install govinor on the server
