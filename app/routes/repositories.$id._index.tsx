@@ -5,7 +5,7 @@ import {
 } from "@heroicons/react/20/solid";
 import {
   ActionFunction,
-  LoaderArgs,
+  LoaderFunctionArgs,
   redirect,
   SerializeFrom,
 } from "@remix-run/node";
@@ -26,7 +26,7 @@ import { deleteRepository, findRepository } from "~/models/repository.server";
 
 export type Loader = typeof loader;
 
-export let loader = async ({ params }: LoaderArgs) => {
+export let loader = async ({ params }: LoaderFunctionArgs) => {
   invariant(params.id, "Expected a repository id");
   const repository = await findRepository({
     id: params.id,

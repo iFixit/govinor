@@ -1,4 +1,4 @@
-import { ActionArgs, json, redirect } from "@remix-run/node";
+import { ActionFunctionArgs, json, redirect } from "@remix-run/node";
 import { Form, Link, useActionData, useNavigation } from "@remix-run/react";
 import { repositoryPath } from "~/helpers/path-helpers";
 import { flashMessage, MessageType } from "~/lib/flash";
@@ -9,7 +9,7 @@ import {
   CreateRepositoryInputSchema,
 } from "~/models/repository.server";
 
-export const action = async ({ request }: ActionArgs) => {
+export const action = async ({ request }: ActionFunctionArgs) => {
   const formData = await request.formData();
   const input = Object.fromEntries(formData.entries());
   const validatedInput = CreateRepositoryInputSchema.safeParse(input);

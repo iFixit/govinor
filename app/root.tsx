@@ -1,18 +1,12 @@
+import { LinksFunction, LoaderFunctionArgs, json } from "@remix-run/node";
 import {
-  ErrorBoundaryComponent,
-  LinksFunction,
-  LoaderArgs,
-  MetaFunction,
-  json,
-} from "@remix-run/node";
-import {
-  isRouteErrorResponse,
   Links,
   LiveReload,
   Meta,
   Outlet,
   Scripts,
   ScrollRestoration,
+  isRouteErrorResponse,
   useLoaderData,
   useRouteError,
 } from "@remix-run/react";
@@ -26,7 +20,7 @@ import styles from "./styles.css";
 
 export type Loader = typeof loader;
 
-export let loader = async ({ request }: LoaderArgs) => {
+export let loader = async ({ request }: LoaderFunctionArgs) => {
   await requireAuthorization(request);
 
   const session = await getSession(request.headers.get("Cookie"));

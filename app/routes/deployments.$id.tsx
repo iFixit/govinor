@@ -9,8 +9,8 @@ import {
   RocketLaunchIcon,
 } from "@heroicons/react/24/solid";
 import {
-  ActionArgs,
-  LoaderArgs,
+  ActionFunctionArgs,
+  LoaderFunctionArgs,
   redirect,
   SerializeFrom,
 } from "@remix-run/node";
@@ -40,7 +40,7 @@ dayjs.extend(calendar);
 
 export type Loader = typeof loader;
 
-export let loader = async ({ params }: LoaderArgs) => {
+export let loader = async ({ params }: LoaderFunctionArgs) => {
   invariant(params.id, "Expected params.id");
 
   const deployment = await findDeployment(params.id);
@@ -64,7 +64,7 @@ enum ActionType {
   Redeploy = "redeploy",
 }
 
-export const action = async ({ request, params }: ActionArgs) => {
+export const action = async ({ request, params }: ActionFunctionArgs) => {
   invariant(params.id, "Expected params.id");
   const formData = await request.formData();
   const action = formData.get("_action");

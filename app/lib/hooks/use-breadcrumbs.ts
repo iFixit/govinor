@@ -9,6 +9,7 @@ export interface BreadcrumbItem {
 export function useBreadcrumbs(): BreadcrumbItem[] {
   const matches = useMatches();
   const matchesWithBreadcrumbs = matches.filter(
+    // @ts-ignore
     (match) => typeof match.handle?.getBreadcrumbs === "function"
   );
   if (matchesWithBreadcrumbs.length === 0) {
@@ -16,6 +17,7 @@ export function useBreadcrumbs(): BreadcrumbItem[] {
   }
   // Concatenate all the breadcrumbs
   return matchesWithBreadcrumbs.reduce((acc, match) => {
+    // @ts-ignore
     return acc.concat(match.handle!.getBreadcrumbs(match.data));
   }, [] as BreadcrumbItem[]);
 }

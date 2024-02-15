@@ -1,4 +1,4 @@
-import { Session } from "remix";
+import type { Session } from "@remix-run/node";
 import { z } from "zod";
 
 const FLASH_MESSAGE_KEY = "globalMessage";

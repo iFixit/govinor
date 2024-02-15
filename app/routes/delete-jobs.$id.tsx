@@ -2,8 +2,8 @@ import { CheckIcon } from "@heroicons/react/20/solid";
 import { ArrowPathRoundedSquareIcon } from "@heroicons/react/24/outline";
 import { ArrowDownTrayIcon, RocketLaunchIcon } from "@heroicons/react/24/solid";
 import {
-  ActionArgs,
-  LoaderArgs,
+  ActionFunctionArgs,
+  LoaderFunctionArgs,
   redirect,
   SerializeFrom,
 } from "@remix-run/node";
@@ -47,7 +47,7 @@ export interface DeleteJob {
   progress?: ProgressLog;
 }
 
-export let loader = async ({ params }: LoaderArgs) => {
+export let loader = async ({ params }: LoaderFunctionArgs) => {
   invariant(params.id, "Expected params.id");
 
   const job = await findDeleteDeploymentJob(params.id);
@@ -97,7 +97,7 @@ enum ActionType {
   Retry = "retry",
 }
 
-export const action = async ({ request, params }: ActionArgs) => {
+export const action = async ({ request, params }: ActionFunctionArgs) => {
   invariant(params.id, "Expected params.id");
   const formData = await request.formData();
   const action = formData.get("_action");

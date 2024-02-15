@@ -1,7 +1,7 @@
 import {
-  ActionArgs,
+  ActionFunctionArgs,
   json,
-  LoaderArgs,
+  LoaderFunctionArgs,
   redirect,
   SerializeFrom,
 } from "@remix-run/node";
@@ -24,7 +24,7 @@ import { findRepository } from "~/models/repository.server";
 
 export type Loader = typeof loader;
 
-export const loader = async ({ params }: LoaderArgs) => {
+export const loader = async ({ params }: LoaderFunctionArgs) => {
   const repositoryId = params.id;
   invariant(repositoryId, "Expected a repository id");
   const repository = await findRepository({
@@ -42,7 +42,7 @@ export const loader = async ({ params }: LoaderArgs) => {
   };
 };
 
-export const action = async ({ request, params }: ActionArgs) => {
+export const action = async ({ request, params }: ActionFunctionArgs) => {
   const repositoryId = params.id;
   invariant(repositoryId, "Expected a repository id");
   const repository = await findRepository({
