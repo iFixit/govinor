@@ -3,7 +3,7 @@ Description=Govinor platform
 After=network.target
 
 [Service]
-Environment=PATH=/home/ubuntu/.nvm/versions/node/v14.18.2/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=PATH=/home/ubuntu/.nvm/versions/node/v20.11.1/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 Type=simple
 User=ubuntu
 ExecStart=/home/ubuntu/govinor/service/start.sh

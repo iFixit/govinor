@@ -67,7 +67,7 @@
     "wait-on": "6.0.0"
   },
   "engines": {
-    "node": ">=14"
+    "node": ">=20"
   },
   "sideEffects": false,
   "prisma": {
