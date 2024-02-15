@@ -1,12 +1,12 @@
+import { Link } from "@remix-run/react";
 import dayjs from "dayjs";
 import {
-  getHumanReadableDateTime,
   getHumanReadableDuration,
+  useHumanReadableDateTime,
 } from "~/helpers/date-helpers";
+import { deploymentPath } from "~/helpers/path-helpers";
 import type { DeploymentItem } from "~/models/deployment.server";
 import { StatusIndicator } from "./status-indicator";
-import { deploymentPath } from "~/helpers/path-helpers";
-import { Link } from "@remix-run/react";
 
 interface DeploymentListProps {
   deployments: DeploymentItem[];
@@ -50,11 +50,7 @@ function DeploymentListItem({ deployment }: DeploymentListItemProps) {
         )}
       </div>
       <p className="mt-3 truncate text-xs text-gray-500">
-        Pushed {getHumanReadableDateTime(timestamp)}
-        {/* <span className="text-gray-400 ">{deployment.projectName}</span> */}
-        {/* <span className="text-gray-400">{deployment.projectName}</span> (
-        <span className="font-mono text-gray-400">{deployment.commit}</span> on{" "}
-        <span className="text-gray-400">{deployment.branch}</span>) */}
+        Pushed {useHumanReadableDateTime(timestamp)}
       </p>
     </li>
   );
