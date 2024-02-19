@@ -16,7 +16,7 @@ import { GlobalNotification } from "./components/global-notification";
 import { DefaultLayout } from "./components/layout/default-layout";
 import { getFlashMessage } from "./lib/flash";
 import { findAllRepositories } from "./models/repository.server";
-import styles from "./styles.css";
+import styles from "./tailwind.css";
 
 export type Loader = typeof loader;
 
@@ -38,7 +38,7 @@ export let loader = async ({ request }: LoaderFunctionArgs) => {
   );
 };
 
-export let links: LinksFunction = () => {
+export const links: LinksFunction = () => {
   return [{ rel: "stylesheet", href: styles }];
 };
 
