@@ -76,6 +76,10 @@ export const UpdateRepositoryInputSchema = z.object({
     .string()
     .trim()
     .min(1, "docker compose directory must be present"),
+  deployOnlyOnPullRequest: z.preprocess(
+    (val) => (typeof val === "string" ? val === "on" : val),
+    z.boolean()
+  ),
 });
 
 export type UpdateRepositoryInput = z.infer<typeof UpdateRepositoryInputSchema>;
@@ -88,6 +92,7 @@ export function updateRepository(id: string, input: UpdateRepositoryInput) {
       name: input.name,
       fullName: generateFullName(input.owner, input.name),
       dockerComposeDirectory: input.dockerComposeDirectory,
+      deployOnlyOnPullRequest: input.deployOnlyOnPullRequest,
     },
   });
 }

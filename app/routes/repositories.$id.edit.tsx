@@ -7,7 +7,15 @@ import {
 } from "@remix-run/node";
 import { Form, Link, useActionData, useLoaderData } from "@remix-run/react";
 import invariant from "tiny-invariant";
+import {
+  Switch,
+  SwitchDescription,
+  SwitchGroup,
+  SwitchLabel,
+} from "~/components/switch";
+import { isBlank } from "~/helpers/application-helpers";
 import { repositoryPath } from "~/helpers/path-helpers";
+import { classNames } from "~/helpers/ui-helpers";
 import { flashMessage, MessageType } from "~/lib/flash";
 import { BreadcrumbItem } from "~/lib/hooks/use-breadcrumbs";
 import { commitSession, getSession } from "~/lib/session.server";
@@ -90,79 +98,66 @@ export default function EditRepositoryPage() {
             <div className="border-b border-white/10 pb-12">
               <div className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
                 <div className="sm:col-span-4">
-                  <label
-                    htmlFor="owner"
-                    className="block text-sm font-medium leading-6 text-white"
-                  >
-                    Repository owner
-                  </label>
+                  <Label htmlFor="owner">Repository owner</Label>
                   <div className="mt-2">
-                    <div className="flex rounded-md bg-white/5 ring-1 ring-inset ring-white/10 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-500">
-                      <input
-                        type="text"
-                        name="owner"
-                        id="owner"
-                        className="flex-1 border-0 bg-transparent py-1.5 text-white focus:ring-0 sm:text-sm sm:leading-6"
-                        placeholder="iFixit"
-                        defaultValue={repository.owner}
-                      />
-                    </div>
-                    {actionData?.fieldErrors.owner && (
-                      <p className="mt-2 text-sm text-red-500">
-                        {actionData.fieldErrors.owner[0]}
-                      </p>
-                    )}
+                    <Input
+                      type="text"
+                      name="owner"
+                      id="owner"
+                      placeholder="iFixit"
+                      defaultValue={repository.owner}
+                    />
+                    <InputErrorMessage>
+                      {actionData?.fieldErrors.owner?.[0]}
+                    </InputErrorMessage>
                   </div>
                 </div>
                 <div className="sm:col-span-4">
-                  <label
-                    htmlFor="name"
-                    className="block text-sm font-medium leading-6 text-white"
-                  >
-                    Repository name
-                  </label>
+                  <Label htmlFor="name">Repository name</Label>
                   <div className="mt-2">
-                    <div className="flex rounded-md bg-white/5 ring-1 ring-inset ring-white/10 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-500">
-                      <input
-                        type="text"
-                        name="name"
-                        id="name"
-                        className="flex-1 border-0 bg-transparent py-1.5 text-white focus:ring-0 sm:text-sm sm:leading-6"
-                        placeholder="react-commerce"
-                        defaultValue={repository.name}
-                      />
-                    </div>
-                    {actionData?.fieldErrors.name && (
-                      <p className="mt-2 text-sm text-red-500">
-                        {actionData.fieldErrors.name[0]}
-                      </p>
-                    )}
+                    <Input
+                      type="text"
+                      name="name"
+                      id="name"
+                      placeholder="ifixit"
+                      defaultValue={repository.name}
+                    />
+                    <InputErrorMessage>
+                      {actionData?.fieldErrors.name?.[0]}
+                    </InputErrorMessage>
                   </div>
                 </div>
                 <div className="sm:col-span-4">
-                  <label
-                    htmlFor="dockerComposeDirectory"
-                    className="block text-sm font-medium leading-6 text-white"
-                  >
+                  <Label htmlFor="dockerComposeDirectory">
                     Docker compose directory
-                  </label>
+                  </Label>
                   <div className="mt-2">
-                    <div className="flex rounded-md bg-white/5 ring-1 ring-inset ring-white/10 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-500">
-                      <input
-                        type="text"
-                        name="dockerComposeDirectory"
-                        id="dockerComposeDirectory"
-                        className="flex-1 border-0 bg-transparent py-1.5 text-white focus:ring-0 sm:text-sm sm:leading-6"
-                        placeholder="backend"
-                        defaultValue={repository.dockerComposeDirectory}
-                      />
-                    </div>
-                    {actionData?.fieldErrors.dockerComposeDirectory && (
-                      <p className="mt-2 text-sm text-red-500">
-                        {actionData.fieldErrors.dockerComposeDirectory[0]}
-                      </p>
-                    )}
+                    <Input
+                      type="text"
+                      name="dockerComposeDirectory"
+                      id="dockerComposeDirectory"
+                      placeholder="apps/strapi"
+                      defaultValue={repository.dockerComposeDirectory}
+                    />
+                    <InputErrorMessage>
+                      {actionData?.fieldErrors.dockerComposeDirectory?.[0]}
+                    </InputErrorMessage>
                   </div>
+                </div>
+                <div className="sm:col-span-4">
+                  <SwitchGroup>
+                    <span className="flex flex-grow flex-col">
+                      <SwitchLabel>Deploy only open pull requests</SwitchLabel>
+                      <SwitchDescription>
+                        If enabled, only branches that have open pull requests
+                        will be deployed automatically.
+                      </SwitchDescription>
+                    </span>
+                    <Switch
+                      name="deployOnlyOnPullRequest"
+                      defaultChecked={repository.deployOnlyOnPullRequest}
+                    ></Switch>
+                  </SwitchGroup>
                 </div>
               </div>
             </div>
@@ -186,4 +181,46 @@ export default function EditRepositoryPage() {
       </main>
     </div>
   );
+}
+
+function Label({
+  className,
+  ...otherProps
+}: React.DetailedHTMLProps<
+  React.LabelHTMLAttributes<HTMLLabelElement>,
+  HTMLLabelElement
+>) {
+  return (
+    <label
+      {...otherProps}
+      className={classNames(
+        className,
+        "block text-sm font-medium leading-6 text-white"
+      )}
+    />
+  );
+}
+
+function Input({
+  className,
+  ...otherProps
+}: React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <div
+      className={classNames(
+        className,
+        "flex rounded-md bg-white/5 ring-1 ring-inset ring-white/10 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-500"
+      )}
+    >
+      <input
+        className="flex-1 border-0 bg-transparent py-1.5 text-white focus:ring-0 sm:text-sm sm:leading-6"
+        {...otherProps}
+      />
+    </div>
+  );
+}
+
+function InputErrorMessage({ children }: { children: React.ReactNode }) {
+  if (isBlank(children)) return null;
+  return <p className="mt-2 text-sm text-red-500">{children}</p>;
 }
