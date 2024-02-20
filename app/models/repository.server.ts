@@ -77,7 +77,7 @@ export const UpdateRepositoryInputSchema = z.object({
     .trim()
     .min(1, "docker compose directory must be present"),
   deployOnlyOnPullRequest: z.preprocess(
-    (val) => (typeof val === "string" ? val === "on" : val),
+    (val) => (typeof val === "string" ? val === "on" : val === true),
     z.boolean()
   ),
 });
