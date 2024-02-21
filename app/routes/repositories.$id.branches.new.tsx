@@ -19,7 +19,7 @@ import { PushJob } from "~/jobs/push-job.server";
 import { flashMessage, MessageType } from "~/lib/flash";
 import { BreadcrumbItem } from "~/lib/hooks/use-breadcrumbs";
 import { commitSession, getSession } from "~/lib/session.server";
-import { createBranch } from "~/models/branch.server";
+import { upsertBranch } from "~/models/branch.server";
 import { findRepository } from "~/models/repository.server";
 
 export type Loader = typeof loader;
@@ -61,7 +61,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
   const validatedInput = CreateBranchInputSchema.safeParse(input);
 
   if (validatedInput.success) {
-    const branch = await createBranch({
+    const branch = await upsertBranch({
       branchName: validatedInput.data.branchName,
       cloneUrl: `https://github.com/${repository.fullName}.git`,
       dockerComposeDirectory: repository.dockerComposeDirectory,

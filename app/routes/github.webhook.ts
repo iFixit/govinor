@@ -1,11 +1,10 @@
 import { ActionFunction, json } from "@remix-run/node";
 import crypto from "crypto";
-import invariant from "tiny-invariant";
 import { z } from "zod";
 import { GITHUB_WEBHOOK_SECRET } from "~/../config/env.server";
 import { DeleteDeploymentJob } from "~/jobs/delete-deployment-job.server";
 import { PushJob } from "~/jobs/push-job.server";
-import { createBranch } from "~/models/branch.server";
+import { upsertBranch } from "~/models/branch.server";
 import { findRepository } from "~/models/repository.server";
 
 export const action: ActionFunction = async ({ request }) => {
@@ -14,62 +13,88 @@ export const action: ActionFunction = async ({ request }) => {
   }
   const webhook = await verifyGithubPayload(request);
 
-  const event = request.headers.get("X-GitHub-Event");
-  const response: any = {
-    message: `Webhook received: ${event}`,
-    event,
-  };
+  const repository = await findRepository({
+    fullName: webhook.payload.repository.full_name,
+  });
 
-  if (isBranchPushWebhook()) {
-    await createNewDeployment();
-  } else if (isBranchDeleteWebhook()) {
-    await deleteDeployment();
+  if (repository == null) {
+    throw json({ message: "Repository not found" }, 404);
   }
 
-  return json(response, 200);
+  if (repository.deployOnlyOnPullRequest) {
+    if (webhook.event !== "pull_request") return webhookResponse();
 
-  function isBranchPushWebhook() {
-    return (
-      webhook.event === "push" &&
-      !webhook.payload.deleted &&
-      webhook.payload.ref.startsWith("refs/heads/")
-    );
-  }
-
-  function isBranchDeleteWebhook() {
-    return webhook.event === "delete" && webhook.payload.ref_type === "branch";
-  }
-
-  async function createNewDeployment() {
-    invariant(webhook.event === "push");
-    const branchName = webhook.payload.ref.replace("refs/heads/", "");
-    response.branch = branchName;
-    response.pusher = webhook.payload.pusher.name;
-    const repository = await findRepository({
-      fullName: webhook.payload.repository.full_name,
-    });
-    if (repository == null) {
-      throw json({ message: "Repository not found" }, 404);
+    switch (webhook.payload.action) {
+      case "opened":
+      case "synchronize": {
+        const branchName = webhook.payload.pull_request.head.ref;
+        await upsertBranch({
+          branchName,
+          cloneUrl: webhook.payload.repository.clone_url,
+          dockerComposeDirectory: repository.dockerComposeDirectory,
+          repositoryId: repository.id,
+        });
+        await PushJob.performLater({
+          branch: branchName,
+        });
+        return webhookResponse({ branch: branchName });
+      }
+      case "closed": {
+        const branch = webhook.payload.pull_request.head.ref;
+        await DeleteDeploymentJob.performLater({
+          branch,
+        });
+        return webhookResponse({ branch });
+      }
+      default:
+        return webhookResponse();
     }
-    await createBranch({
-      branchName,
-      cloneUrl: webhook.payload.repository.clone_url,
-      dockerComposeDirectory: repository.dockerComposeDirectory,
-      repositoryId: repository.id,
-    });
-    await PushJob.performLater({
-      branch: branchName,
-    });
   }
 
-  async function deleteDeployment() {
-    invariant(webhook.event === "delete");
-    // The delete event ref is the branch name
-    const branch = webhook.payload.ref;
-    response.branch = branch;
-    await DeleteDeploymentJob.performLater({
-      branch,
-    });
+  switch (webhook.event) {
+    case "push": {
+      if (
+        webhook.payload.deleted ||
+        !webhook.payload.ref.startsWith("refs/heads/")
+      )
+        return webhookResponse();
+      const branchName = webhook.payload.ref.replace("refs/heads/", "");
+      await upsertBranch({
+        branchName,
+        cloneUrl: webhook.payload.repository.clone_url,
+        dockerComposeDirectory: repository.dockerComposeDirectory,
+        repositoryId: repository.id,
+      });
+      await PushJob.performLater({
+        branch: branchName,
+      });
+      return webhookResponse({
+        branch: branchName,
+        pusher: webhook.payload.pusher.name,
+      });
+    }
+    case "delete": {
+      if (webhook.payload.ref_type !== "branch") return webhookResponse();
+
+      const branch = webhook.payload.ref;
+      await DeleteDeploymentJob.performLater({
+        branch,
+      });
+      return webhookResponse({ branch });
+    }
+    default:
+      return webhookResponse();
+  }
+
+  function webhookResponse(details: Record<string, unknown> = {}) {
+    return json(
+      {
+        message: `Webhook received: ${webhook.event}`,
+        event: webhook.event,
+        ...details,
+      },
+      200
+    );
   }
 };
 
@@ -92,6 +117,11 @@ async function verifyGithubPayload(request: Request): Promise<GithubEvent> {
   return validation.data;
 }
 
+const RepositorySchema = z.object({
+  full_name: z.string(),
+  clone_url: z.string(),
+});
+
 const GithubPushEventSchema = z.object({
   event: z.literal("push"),
   payload: z.object({
@@ -111,17 +141,68 @@ const GithubPushEventSchema = z.object({
   }),
 });
 
+const PullRequestOpenedPayloadSchema = z.object({
+  action: z.literal("opened"),
+  number: z.number(),
+  pull_request: z.object({
+    url: z.string(),
+    head: z.object({
+      ref: z.string(), // The branch name
+    }),
+  }),
+  repository: RepositorySchema,
+});
+
+const PullRequestClosedPayloadSchema = z.object({
+  action: z.literal("closed"),
+  number: z.number(),
+  pull_request: z.object({
+    url: z.string(),
+    head: z.object({
+      ref: z.string(), // The branch name
+    }),
+  }),
+  repository: RepositorySchema,
+});
+
+const PullRequestSynchronizePayloadSchema = z.object({
+  action: z.literal("synchronize"),
+  number: z.number(),
+  pull_request: z.object({
+    url: z.string(),
+    head: z.object({
+      ref: z.string(), // The branch name
+    }),
+  }),
+  repository: RepositorySchema,
+});
+
+const PullRequestPayloadSchema = z.union([
+  PullRequestOpenedPayloadSchema,
+  PullRequestClosedPayloadSchema,
+  PullRequestSynchronizePayloadSchema,
+]);
+
+const GithubPullRequestEventSchema = z.object({
+  event: z.literal("pull_request"),
+  payload: PullRequestPayloadSchema,
+});
+
 const GithubDeleteEventSchema = z.object({
   event: z.literal("delete"),
   payload: z.object({
     ref: z.string(),
     ref_type: z.string(),
+    repository: z.object({
+      full_name: z.string(),
+    }),
   }),
 });
 
 const GithubEventSchema = z.union([
   GithubPushEventSchema,
   GithubDeleteEventSchema,
+  GithubPullRequestEventSchema,
 ]);
 
 type GithubEvent = z.infer<typeof GithubEventSchema>;

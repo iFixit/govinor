@@ -51,14 +51,14 @@ export async function findBranch(branchName: string) {
   });
 }
 
-type CreateBranchInput = {
+type UpsertBranchInput = {
   branchName: string;
   cloneUrl: string;
   dockerComposeDirectory: string;
   repositoryId: string;
 };
 
-export async function createBranch(input: CreateBranchInput) {
+export async function upsertBranch(input: UpsertBranchInput) {
   const branchHandle = getBranchHandle(input.branchName);
   return prisma.branch.upsert({
     where: {
