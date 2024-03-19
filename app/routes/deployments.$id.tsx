@@ -197,6 +197,7 @@ export function DeploymentHeader({
   const shouldViewLink =
     branch != null && finishedOn.isValid() && deployment.status === "completed";
   const canRedeploy = ["failed", "completed"].includes(deployment.status);
+  const humanReadableFinishedOn = useHumanReadableDateTime(finishedOn);
 
   return (
     <div className="lg:flex lg:items-center lg:justify-between p-8">
@@ -226,7 +227,7 @@ export function DeploymentHeader({
                   className="mr-1.5 h-5 w-5 flex-shrink-0 text-gray-500"
                   aria-hidden="true"
                 />
-                Completed: {useHumanReadableDateTime(finishedOn)}
+                Completed: {humanReadableFinishedOn}
               </>
             ) : (
               <>

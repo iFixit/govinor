@@ -38,7 +38,16 @@ export async function deploy({ logger, branch }: DeployOptions): Promise<void> {
   invariant(branch.repository, "Branch must have a repository to deploy.");
   const info = createInfo(logger);
   const shell = new Shell(logger);
-  await shell.run(dockerSystemPruneCommand());
+  try {
+    await shell.run(dockerSystemPruneCommand());
+  } catch (error) {
+    // If pruning fails we don't want to stop the deployment process.
+    if (error instanceof Error) {
+      await info(error.message);
+    } else {
+      await info("Pruning failed with unknown error. Continuing..");
+    }
+  }
   const deploymentExists = await doesDeploymentWithHandleExist(branch.handle);
   if (deploymentExists) {
     await info(
