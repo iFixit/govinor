@@ -2,7 +2,8 @@ import { json } from "@remix-run/node";
 import { z } from "zod";
 import { DeleteDeploymentJob } from "~/jobs/delete-deployment-job.server";
 import { PushJob } from "~/jobs/push-job.server";
-import { upsertBranch } from "~/models/branch.server";
+import { findBranch, upsertBranch } from "~/models/branch.server";
+import { findPullRequestFiles } from "~/models/pull-request.server";
 import { type Repository } from "~/models/repository.server";
 
 type GithubPullRequestEvent = z.infer<typeof GithubPullRequestEventSchema>;
@@ -12,6 +13,11 @@ export async function processPullRequestWebhook(
   repository: Repository
 ) {
   if (!repository.deployOnlyOnPullRequest)
+    return json({ message: "No action taken" });
+
+  const [files, branch] = await findPullRequestData();
+
+  if (!branch && !hasAppsFolderChanges())
     return json({ message: "No action taken" });
 
   switch (webhook.payload.action) {
@@ -26,6 +32,20 @@ export async function processPullRequestWebhook(
     }
     default:
       return json({ message: "No action taken" });
+  }
+
+  function findPullRequestData() {
+    return Promise.all([
+      findPullRequestFiles({
+        repository,
+        prNumber: webhook.payload.number,
+      }),
+      findBranch(branchName()),
+    ]);
+  }
+
+  function hasAppsFolderChanges() {
+    return files.some((file) => file.filename.startsWith("apps/"));
   }
 
   async function deploy() {

@@ -27,6 +27,7 @@
   "dependencies": {
     "@headlessui/react": "1.7.14",
     "@heroicons/react": "2.0.18",
+    "@octokit/rest": "20.0.2",
     "@prisma/client": "4.1.1",
     "@remix-run/node": "2.6.0",
     "@remix-run/react": "2.6.0",

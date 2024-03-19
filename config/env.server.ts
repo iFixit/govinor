@@ -23,3 +23,5 @@ export const STRAPI_TRANSFER_TOKEN_SALT =
 
 export const STRAPI_ADMIN_BACKEND_URL =
   process.env.STRAPI_ADMIN_BACKEND_URL ?? "";
+
+export const GITHUB_API_TOKEN = process.env.GITHUB_API_TOKEN;
