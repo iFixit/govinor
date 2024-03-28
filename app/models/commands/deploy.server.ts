@@ -210,7 +210,16 @@ export async function destroy({
     }
   }
   await info("Prune unused docker stuff..");
-  await shell.run(dockerSystemPruneCommand());
+  try {
+    await shell.run(dockerSystemPruneCommand());
+  } catch (error) {
+    // If pruning fails we don't want to stop the deployment process.
+    if (error instanceof Error) {
+      await info(error.message);
+    } else {
+      await info("Pruning failed with unknown error. Continuing..");
+    }
+  }
   if (branchFolderExists) {
     await info("Destroying deployment assets..");
     await shell.run(removeDeploymentFolder({ branchHandle: branch.handle }));
