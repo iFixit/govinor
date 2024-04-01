@@ -30,7 +30,7 @@ const MAX_DOMAIN_LENGTH = 63;
 const BRANCH_HASH_LENGTH = 8;
 
 export function getBranchHandle(branchName: string) {
-  const handle = branchName.replace(/[\/_,]/g, "-");
+  const handle = branchName.replace(/[^a-zA-Z0-9]/g, "-");
   const hash = crypto
     .createHash("sha1")
     .update(branchName)
