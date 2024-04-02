@@ -26,7 +26,7 @@ This starts your app in development mode, rebuilding assets on file changes.
 
 If you need to setup a new server read the instructions below on "Setup AWS resources" and "Install Govinor on the server".
 
-When you need to deploy a new version of govinor, run the following commands:
+When you need to deploy a new version of govinor, ssh into the server and run the following commands:
 
 ```sh
 cd ~/govinor;
@@ -35,7 +35,7 @@ npm ci;
 npm run deploy;
 ```
 
-### Setup AWS resources
+## Setup AWS resources
 
 First, create an AWS account and create an IAM user with these permissions:
 
@@ -43,7 +43,7 @@ First, create an AWS account and create an IAM user with these permissions:
 - `AmazonRDSFullAccess`
 - `AmazonS3FullAccess`
 
-#### Launch an EC2 instance
+### Launch an EC2 instance
 
 1. Choose AMI: `Ubuntu Server 20.04 LTS (x86)`
 2. Choose instance type: `t3.medium`
@@ -59,21 +59,21 @@ First, create an AWS account and create an IAM user with these permissions:
 
 Finally hit "Launch" and create a new key pair (e.g. `govinor-key-pair`) and save it to your computer.
 
-#### Install Docker
+### Install Docker
 
 Follow the instructions on [How To Install and Use Docker on Ubuntu 20.04](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-20-04) to install Docker for Ubuntu 20.04.
 
 > :warning: **Important**: Make sure to follow Step 2 to enable docker execution without the sudo command
 
-#### Install Docker Compose
+### Install Docker Compose
 
 Follow the instructions ["Install on Linux"](https://docs.docker.com/compose/cli-command/#install-on-linux) to install Docker Compose.
 
-#### Install Caddy Server
+### Install Caddy Server
 
 Follow the instructions for ["Ubuntu"](https://caddyserver.com/docs/install#debian-ubuntu-raspbian) to install Caddy.
 
-#### Install Node.js
+### Install Node.js
 
 To make it easier to manage and upgrade Node versions, Govinor uses [Node Version Manager](https://github.com/nvm-sh/nvm#installing-and-updating).
 
@@ -89,9 +89,9 @@ Let's also set the default Node version to the one we just installed:
 nvm alias default 20
 ```
 
-### Install govinor on the server
+## Install govinor on the server
 
-#### Prerequisites
+### Prerequisites
 
 You need to have a Github webhook configured for the repo you want to deploy.
 Head to your repo settings and add a webhook that points to the following settings:
@@ -101,7 +101,7 @@ Head to your repo settings and add a webhook that points to the following settin
 
 Select also "Send me everything".
 
-#### Install
+### Install
 
 To install govinor, you need to SSH into your EC2 instance and run the following commands:
 
@@ -135,7 +135,7 @@ To do so, ssh into the EC2 instance and run the following command:
 ssh-keyscan github.com >> ~/.ssh/known_hosts
 ```
 
-### Scale up Govinor
+## Scale up Govinor
 
 If Govinor runs out of memory, to scale it up follow the following steps:
 
@@ -149,7 +149,7 @@ If Govinor runs out of memory, to scale it up follow the following steps:
    ./scripts/init-caddy.sh
    ```
 
-### Troubleshooting
+## Troubleshooting
 
 For convenience here a few useful commands for diagnosing problems:
 
