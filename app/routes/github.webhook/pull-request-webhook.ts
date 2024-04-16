@@ -17,7 +17,7 @@ export async function processPullRequestWebhook(
 
   const [files, branch] = await findPullRequestData();
 
-  if (!branch && !hasAppsFolderChanges())
+  if (!branch && !hasChangesAffectingNextjsApp())
     return json({ message: "No action taken" });
 
   switch (webhook.payload.action) {
@@ -44,8 +44,12 @@ export async function processPullRequestWebhook(
     ]);
   }
 
-  function hasAppsFolderChanges() {
-    return files.some((file) => file.filename.startsWith("apps/"));
+  function hasChangesAffectingNextjsApp() {
+    return files.some(
+      (file) =>
+        file.filename.startsWith("apps/") ||
+        file.filename.startsWith("packages/")
+    );
   }
 
   async function deploy() {
