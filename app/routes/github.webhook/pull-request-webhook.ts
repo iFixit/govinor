@@ -13,12 +13,15 @@ export async function processPullRequestWebhook(
   repository: Repository
 ) {
   if (!repository.deployOnlyOnPullRequest)
-    return json({ message: "No action taken" });
+    return json({ message: "No action taken (deploy only on pull request)" });
 
   const [files, branch] = await findPullRequestData();
 
   if (!branch && !hasChangesAffectingNextjsApp())
-    return json({ message: "No action taken" });
+    return json({
+      message:
+        "No action taken (no branch or no changes found in `apps/`, `packages/` or `.github/workflows/nextjs-deploy-nextjs.yml`)",
+    });
 
   switch (webhook.payload.action) {
     case "opened":
@@ -31,7 +34,9 @@ export async function processPullRequestWebhook(
       return json({ message: `Deleting branch "${branchName()}"` });
     }
     default:
-      return json({ message: "No action taken" });
+      return json({
+        message: `No action taken for webhook payload action ${webhook.payload.action}`,
+      });
   }
 
   function findPullRequestData() {
