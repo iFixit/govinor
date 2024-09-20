@@ -48,7 +48,8 @@ export async function processPullRequestWebhook(
     return files.some(
       (file) =>
         file.filename.startsWith("apps/") ||
-        file.filename.startsWith("packages/")
+        file.filename.startsWith("packages/") ||
+        file.filename === ".github/workflows/nextjs-deploy-nextjs.yml"
     );
   }
 
