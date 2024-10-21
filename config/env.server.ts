@@ -25,3 +25,5 @@ export const STRAPI_ADMIN_BACKEND_URL =
   process.env.STRAPI_ADMIN_BACKEND_URL ?? "";
 
 export const GITHUB_API_TOKEN = process.env.GITHUB_API_TOKEN;
+
+export const DEEPL_API_KEY = process.env.DEEPL_API_KEY;

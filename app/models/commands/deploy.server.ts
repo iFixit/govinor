@@ -2,6 +2,7 @@ import fs from "fs/promises";
 import getPort from "get-port";
 import invariant from "tiny-invariant";
 import {
+  DEEPL_API_KEY,
   DEPLOYMENTS_DIRECTORY,
   DEPLOY_DOMAIN,
   STRAPI_ADMIN_BACKEND_URL,
@@ -123,6 +124,18 @@ export async function deploy({ logger, branch }: DeployOptions): Promise<void> {
         variable: {
           name: "TRANSFER_TOKEN_SALT",
           value: STRAPI_TRANSFER_TOKEN_SALT,
+        },
+        branchHandle: branch.handle,
+        rootDirectory: branch.dockerComposeDirectory,
+      })
+    );
+  }
+  if (isPresent(DEEPL_API_KEY)) {
+    await shell.run(
+      addStrapiEnvVariableCommand({
+        variable: {
+          name: "DEEPL_API_KEY",
+          value: DEEPL_API_KEY,
         },
         branchHandle: branch.handle,
         rootDirectory: branch.dockerComposeDirectory,
