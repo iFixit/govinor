@@ -21,24 +21,23 @@ export async function processPullRequestWebhook(
     });
 
   const [files, branch] = await findPullRequestData();
+  const relevantChanges = hasChangesAffectingNextjsApp();
 
-  if (!branch) {
+  if (!branch && !relevantChanges) {
+    const branchReason = branch ? `Branch found: ${branch.name}` : "No branch found";
+    const changedFilesReason = relevantChanges ? "Files affecting the Next.js application" : "No files affecting the Next.js application";
+
     return json({
       status: "skipped",
       message: "No action taken",
-      reason: "No branch found",
-      repository: repository.id
-    });
-  }
-
-  if (!hasChangesAffectingNextjsApp())
-    return json({
-      status: "skipped",
-      message: "No action taken",
-      reason: "No changes affecting the Next.js application",
+      reason: {
+        branch: branchReason,
+        changedFiles: changedFilesReason,
+      },
       pullRequest: webhook.payload.number,
       repository: repository.id
     });
+  }
 
   switch (webhook.payload.action) {
     case "opened":
