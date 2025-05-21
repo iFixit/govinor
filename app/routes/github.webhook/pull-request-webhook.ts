@@ -13,25 +13,59 @@ export async function processPullRequestWebhook(
   repository: Repository
 ) {
   if (!repository.deployOnlyOnPullRequest)
-    return json({ message: "No action taken" });
+    return json({
+      status: "skipped",
+      message: "No action taken",
+      reason: "Repository deploys on every push, therefore deploying on pull request events is redundant",
+      repository: repository.id
+    });
 
   const [files, branch] = await findPullRequestData();
+  const relevantChanges = hasChangesAffectingNextjsApp();
 
-  if (!branch && !hasChangesAffectingNextjsApp())
-    return json({ message: "No action taken" });
+  if (!branch && !relevantChanges) {
+    return json({
+      status: "skipped",
+      message: "No action taken",
+      reason: "There isn't a built branch and there aren't any changes affecting Nextjs",
+      filesChanged: files,
+      pullRequest: webhook.payload.number,
+      repository: repository.id
+    });
+  }
 
   switch (webhook.payload.action) {
     case "opened":
     case "synchronize": {
       await deploy();
-      return json({ message: `Started branch "${branchName()}" deployment` });
+      return json({
+        status: "success",
+        message: `Started branch "${branchName()}" deployment`,
+        action: webhook.payload.action,
+        pullRequest: webhook.payload.number,
+        branch: branchName(),
+        repository: repository.id
+      });
     }
     case "closed": {
       await removeDeployment();
-      return json({ message: `Deleting branch "${branchName()}"` });
+      return json({
+        status: "success",
+        message: `Deleting branch "${branchName()}" deployment`,
+        reason: "Pull request was closed",
+        pullRequest: webhook.payload.number,
+        branch: branchName(),
+        repository: repository.id
+      });
     }
     default:
-      return json({ message: "No action taken" });
+      return json({
+        status: "skipped",
+        message: "No action taken",
+        reason: `Unhandled pull request action: ${webhook.payload.action}`,
+        pullRequest: webhook.payload.number,
+        repository: repository.id
+      });
   }
 
   function findPullRequestData() {
