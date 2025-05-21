@@ -28,7 +28,7 @@ export async function processPullRequestWebhook(
       status: "skipped",
       message: "No action taken",
       reason: "There isn't a built branch and there aren't any changes affecting Nextjs",
-      filesChanged: files,
+      filesChanged: files.map((file) => file.filename),
       pullRequest: webhook.payload.number,
       repository: repository.id
     });
