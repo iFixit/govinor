@@ -16,7 +16,7 @@ export async function processPullRequestWebhook(
     return json({
       status: "skipped",
       message: "No action taken",
-      reason: "Repository is not configured for PR-only deployments",
+      reason: "Repository deploys on every push, therefore deploying on pull request events is redundant",
       repository: repository.id
     });
 
@@ -24,16 +24,11 @@ export async function processPullRequestWebhook(
   const relevantChanges = hasChangesAffectingNextjsApp();
 
   if (!branch && !relevantChanges) {
-    const branchReason = branch ? `Branch found: ${branch.name}` : "No branch found";
-    const changedFilesReason = relevantChanges ? "Files affecting the Next.js application" : "No files affecting the Next.js application";
-
     return json({
       status: "skipped",
       message: "No action taken",
-      reason: {
-        branch: branchReason,
-        changedFiles: changedFilesReason,
-      },
+      reason: "There isn't a built branch and there aren't any changes affecting Nextjs",
+      filesChanged: files,
       pullRequest: webhook.payload.number,
       repository: repository.id
     });
