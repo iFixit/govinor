@@ -59,11 +59,13 @@ export async function processPullRequestWebhook(
       });
     }
     default:
+      // The payload type here is "never". We're casting it to any so we're able to log some properties for debug purposes
+      const unknownPayload = webhook.payload as any;
       return json({
         status: "skipped",
         message: "No action taken",
-        reason: `Unhandled pull request action: ${webhook.payload.action}`,
-        pullRequest: webhook.payload.number,
+        reason: `Unhandled pull request action: ${unknownPayload?.action}`,
+        pullRequest: unknownPayload?.number,
         repository: repository.id
       });
   }
