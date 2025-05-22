@@ -13,10 +13,10 @@ export async function findPullRequestFiles({
   repository,
   prNumber,
 }: FindPullRequestFilesArgs) {
-  const files = await octokit.pulls.listFiles({
-    owner: repository.owner,
-    repo: repository.name,
-    pull_number: prNumber,
-  });
-  return files.data;
+  const files = await octokit.paginate(
+    octokit.rest.pulls.listFiles,
+    { owner: repository.owner, repo: repository.name, pull_number: prNumber, per_page: 100 },
+    response => response.data
+  );
+  return files;
 }
