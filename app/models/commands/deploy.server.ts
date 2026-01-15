@@ -1,6 +1,7 @@
 import fs from "fs/promises";
 import getPort from "get-port";
 import invariant from "tiny-invariant";
+import { parse, stringify } from "envfile";
 import {
   DEEPL_API_KEY,
   DEPLOYMENTS_DIRECTORY,
@@ -95,63 +96,53 @@ export async function deploy({ logger, branch }: DeployOptions): Promise<void> {
   if (port == null) {
     await info("No port found. Getting a new one..");
     port = await getPort();
-    await shell.run(
-      addStrapiEnvVariableCommand({
-        variable: {
-          name: "HOST_PORT",
-          value: port,
-        },
-        branchHandle: branch.handle,
-        rootDirectory: branch.dockerComposeDirectory,
-      })
-    );
-  }
-  if (isPresent(STRAPI_ADMIN_PASSWORD)) {
-    await shell.run(
-      addStrapiEnvVariableCommand({
-        variable: {
-          name: "ADMIN_PASS",
-          value: STRAPI_ADMIN_PASSWORD,
-        },
-        branchHandle: branch.handle,
-        rootDirectory: branch.dockerComposeDirectory,
-      })
-    );
-  }
-  if (isPresent(STRAPI_TRANSFER_TOKEN_SALT)) {
-    await shell.run(
-      addStrapiEnvVariableCommand({
-        variable: {
-          name: "TRANSFER_TOKEN_SALT",
-          value: STRAPI_TRANSFER_TOKEN_SALT,
-        },
-        branchHandle: branch.handle,
-        rootDirectory: branch.dockerComposeDirectory,
-      })
-    );
-  }
-  if (isPresent(DEEPL_API_KEY)) {
-    await shell.run(
-      addStrapiEnvVariableCommand({
-        variable: {
-          name: "DEEPL_API_KEY",
-          value: DEEPL_API_KEY,
-        },
-        branchHandle: branch.handle,
-        rootDirectory: branch.dockerComposeDirectory,
-      })
-    );
-  }
-  await shell.run(
-    addStrapiEnvVariableCommand({
+    await upsertEnvVariable({
       variable: {
-        name: "STRAPI_ADMIN_BACKEND_URL",
-        value: STRAPI_ADMIN_BACKEND_URL,
+        name: "HOST_PORT",
+        value: port,
       },
       branchHandle: branch.handle,
       rootDirectory: branch.dockerComposeDirectory,
-    })
-  );
+    });
+  }
+  if (isPresent(STRAPI_ADMIN_PASSWORD)) {
+    await upsertEnvVariable({
+      variable: {
+        name: "ADMIN_PASS",
+        value: STRAPI_ADMIN_PASSWORD,
+      },
+      branchHandle: branch.handle,
+      rootDirectory: branch.dockerComposeDirectory,
+    });
+  }
+  if (isPresent(STRAPI_TRANSFER_TOKEN_SALT)) {
+    await upsertEnvVariable({
+      variable: {
+        name: "TRANSFER_TOKEN_SALT",
+        value: STRAPI_TRANSFER_TOKEN_SALT,
+      },
+      branchHandle: branch.handle,
+      rootDirectory: branch.dockerComposeDirectory,
+    });
+  }
+  if (isPresent(DEEPL_API_KEY)) {
+    await upsertEnvVariable({
+      variable: {
+        name: "DEEPL_API_KEY",
+        value: DEEPL_API_KEY,
+      },
+      branchHandle: branch.handle,
+      rootDirectory: branch.dockerComposeDirectory,
+    });
+  }
+  await upsertEnvVariable({
+    variable: {
+      name: "STRAPI_ADMIN_BACKEND_URL",
+      value: STRAPI_ADMIN_BACKEND_URL,
+    },
+    branchHandle: branch.handle,
+    rootDirectory: branch.dockerComposeDirectory,
+  });
   await info("Starting deployment..");
   await shell.run(
     dockerComposeUpCommand({
@@ -257,12 +248,39 @@ async function getDeploymentPort(
     if (result == null) {
       return undefined;
     }
-    const match = result.match(/HOST_PORT=(\d+)/);
-    if (match && match[1]) {
-      return parseInt(match[1], 10);
+    const env = parse(result);
+    const value = env["HOST_PORT"];
+    if (value == null) {
+      return undefined;
     }
+    const port = parseInt(String(value), 10);
+    if (!Number.isFinite(port)) {
+      return undefined;
+    }
+    return port;
   } catch (error) {}
   return undefined;
+}
+
+async function upsertEnvVariable({
+  variable,
+  branchHandle,
+  rootDirectory,
+}: UpsertEnvVariableCommandOptions): Promise<void> {
+  const workingDirectory = getRepoDeployPath({
+    rootDirectory,
+    branchHandle,
+  });
+  const envPath = `${workingDirectory}/.env`;
+
+  let result: string | undefined;
+  try {
+    result = await fs.readFile(envPath, "utf8");
+  } catch (error) {}
+
+  const env = result ? parse(result) : {};
+  env[variable.name] = String(variable.value);
+  await fs.writeFile(envPath, stringify(env), "utf8");
 }
 
 async function hasDomainRouteForHandle(handle: string): Promise<boolean> {
@@ -319,30 +337,13 @@ function addEnvFileCommand({
   };
 }
 
-interface AddStrapiEnvVariableCommandOptions {
+interface UpsertEnvVariableCommandOptions {
   variable: {
     name: string;
     value: string | number;
   };
   branchHandle: string;
   rootDirectory?: string;
-}
-
-function addStrapiEnvVariableCommand({
-  variable,
-  branchHandle,
-  rootDirectory,
-}: AddStrapiEnvVariableCommandOptions): SpawnCommand {
-  const workingDirectory = getRepoDeployPath({
-    rootDirectory,
-    branchHandle,
-  });
-  return {
-    type: "spawn-command",
-    command: `echo "\n${variable.name}=${variable.value}" >> .env`,
-    useShellSyntax: true,
-    workingDirectory,
-  };
 }
 
 interface AddCaddyRouteCommandOptions {

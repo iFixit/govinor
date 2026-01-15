@@ -36,6 +36,7 @@
     "bullmq": "1.63.0",
     "dayjs": "1.11.4",
     "dotenv": "10.0.0",
+    "envfile": "^7.1.0",
     "get-port": "5.1.1",
     "ioredis": "4.28.2",
     "isbot": "4.4.0",
