@@ -108,8 +108,19 @@ To install govinor, you need to SSH into your EC2 instance and run the following
 1. Create deployment folder: `mkdir -p ~/deployments`
 2. Clone this repo
 3. cd into the repo: `cd govinor`
-4. Add .env file `cp .env.example .env` and
-5. Edit .env: change `ADMIN_USERNAME`, `ADMIN_PASSWORD` and set `GITHUB_WEBHOOK_SECRET`
+4. Add .env file: `cp .env.example .env`
+5. Edit `.env` and configure the following variables:
+
+   | Variable | Description |
+   |----------|-------------|
+   | `ADMIN_USERNAME` | Username for the Govinor dashboard |
+   | `ADMIN_PASSWORD` | Password for the Govinor dashboard |
+   | `GITHUB_WEBHOOK_SECRET` | Secret configured in your GitHub repo's webhook settings |
+   | `GITHUB_API_TOKEN` | GitHub Personal Access Token with repo access — create one in GitHub Developer Settings, renew yearly |
+   | `DEPLOY_DOMAIN` | Domain where previews are served (defaults to `govinor.com`) |
+   | `STRAPI_ADMIN_PASSWORD` | Admin password passed to deployed Strapi containers |
+   | `STRAPI_TRANSFER_TOKEN_SALT` | Salt for Strapi transfer tokens |
+   | `STRAPI_ADMIN_BACKEND_URL` | Backend URL passed to Strapi containers |
 6. Install dependencies: `npm install`
 7. Build app: `npm run build`
 8. Create systemd service: `sudo cp -i ~/govinor/service/govinor.service /etc/systemd/system`
