@@ -49,7 +49,7 @@ export function BranchPreviews({
                   <circle cx={1} cy={1} r={1} />
                 </svg>
                 <p className="whitespace-nowrap">
-                  Last rebuilt{" "}
+                  Updated{" "}
                   {useHumanReadableDateTime(dayjs(branch.updatedAt))}
                 </p>
               </div>
