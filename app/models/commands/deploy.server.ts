@@ -37,6 +37,10 @@ interface DeployOptions extends BaseOptions {
  * @param options Options for the deployment.
  */
 export async function deploy({ logger, branch }: DeployOptions): Promise<void> {
+  if (process.env.NODE_ENV !== "production") {
+    await logger?.info(`[dev] Simulating deploy for "${branch.name}"`);
+    return;
+  }
   invariant(branch.repository, "Branch must have a repository to deploy.");
   const info = createInfo(logger);
   const shell = new Shell(logger);
@@ -185,6 +189,10 @@ export async function destroy({
   logger,
   branch,
 }: DestroyOptions): Promise<void> {
+  if (process.env.NODE_ENV !== "production") {
+    await logger?.info(`[dev] Simulating destroy for "${branch.name}"`);
+    return;
+  }
   const info = createInfo(logger);
   const shell = new Shell(logger);
   const hasDomainRoute = await hasDomainRouteForHandle(branch.handle);
