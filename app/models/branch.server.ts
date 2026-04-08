@@ -8,7 +8,7 @@ export type BranchItem = NonNullable<
   Awaited<ReturnType<typeof findAllBranches>>
 >[number];
 
-export async function findAllBranches(sort: BranchSortField = "name") {
+export async function findAllBranches(sort: BranchSortField = "updatedAt") {
   const orderBy =
     sort === "updatedAt"
       ? { updatedAt: Prisma.SortOrder.desc }

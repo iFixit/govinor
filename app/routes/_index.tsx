@@ -19,7 +19,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
   const sortParam = url.searchParams.get("sort");
   const sort: BranchSortField =
-    sortParam === "updatedAt" ? "updatedAt" : "name";
+    sortParam === "name" ? "name" : "updatedAt";
 
   const [systemStats, branches, deployments] = await Promise.all([
     getSystemStats(),
