@@ -15,10 +15,7 @@ import { DeleteDeploymentJob } from "~/jobs/delete-deployment-job.server";
 import { PushJob } from "~/jobs/push-job.server";
 import { flashMessage } from "~/lib/flash";
 import { commitSession, getSession } from "~/lib/session.server";
-import {
-  type BranchItem,
-  touchBranchLastRebuiltAt,
-} from "~/models/branch.server";
+import { type BranchItem, touchBranch } from "~/models/branch.server";
 
 enum Intent {
   Redeploy = "redeploy",
@@ -33,7 +30,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     case Intent.Redeploy: {
       const branchName = requireBranchName(formData);
       try {
-        await touchBranchLastRebuiltAt(branchName);
+        await touchBranch(branchName);
         await PushJob.performLater({
           branch: branchName,
         });

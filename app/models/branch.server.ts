@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import { getBranchHandle } from "~/helpers/deployment-helpers";
 import { prisma } from "~/lib/db.server";
 
-export type BranchSortField = "name" | "lastRebuiltAt";
+export type BranchSortField = "name" | "updatedAt";
 
 export type BranchItem = NonNullable<
   Awaited<ReturnType<typeof findAllBranches>>
@@ -10,8 +10,8 @@ export type BranchItem = NonNullable<
 
 export async function findAllBranches(sort: BranchSortField = "name") {
   const orderBy =
-    sort === "lastRebuiltAt"
-      ? { lastRebuiltAt: Prisma.SortOrder.desc }
+    sort === "updatedAt"
+      ? { updatedAt: Prisma.SortOrder.desc }
       : { name: Prisma.SortOrder.asc };
 
   return prisma.branch.findMany({
@@ -22,7 +22,7 @@ export async function findAllBranches(sort: BranchSortField = "name") {
       cloneUrl: true,
       dockerComposeDirectory: true,
       createdAt: true,
-      lastRebuiltAt: true,
+      updatedAt: true,
       repository: {
         select: {
           id: true,
@@ -82,7 +82,6 @@ export async function upsertBranch(input: UpsertBranchInput) {
       cloneUrl: input.cloneUrl,
       dockerComposeDirectory: input.dockerComposeDirectory,
       repositoryId: input.repositoryId,
-      lastRebuiltAt: new Date(),
     },
     select: {
       name: true,
@@ -93,10 +92,10 @@ export async function upsertBranch(input: UpsertBranchInput) {
   });
 }
 
-export async function touchBranchLastRebuiltAt(branchName: string) {
+export async function touchBranch(branchName: string) {
   return prisma.branch.update({
     where: { name: branchName },
-    data: { lastRebuiltAt: new Date() },
+    data: { updatedAt: new Date() },
   });
 }
 

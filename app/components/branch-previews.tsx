@@ -3,9 +3,9 @@ import { useHumanReadableDateTime } from "~/helpers/date-helpers";
 import type { BranchItem } from "~/models/branch.server";
 import { BranchActions } from "~/routes/repositories.$id.branches._index";
 
-type SerializedBranch = Omit<BranchItem, "createdAt" | "lastRebuiltAt"> & {
+type SerializedBranch = Omit<BranchItem, "createdAt" | "updatedAt"> & {
   createdAt: string;
-  lastRebuiltAt: string;
+  updatedAt: string;
 };
 
 interface BranchPreviewsProps {
@@ -50,7 +50,7 @@ export function BranchPreviews({
                 </svg>
                 <p className="whitespace-nowrap">
                   Last rebuilt{" "}
-                  {useHumanReadableDateTime(dayjs(branch.lastRebuiltAt))}
+                  {useHumanReadableDateTime(dayjs(branch.updatedAt))}
                 </p>
               </div>
             </div>
