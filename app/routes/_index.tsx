@@ -1,19 +1,29 @@
-import { Link, useLoaderData } from "@remix-run/react";
+import { LoaderFunctionArgs } from "@remix-run/node";
+import { Link, useLoaderData, useSearchParams } from "@remix-run/react";
 import { DEPLOY_DOMAIN } from "~/../config/env.server";
 import { BranchPreviews } from "~/components/branch-previews";
 import { DeploymentList } from "~/components/deployment-list";
+import { SortSelector } from "~/components/sort-selector";
 import { StatsSection } from "~/components/stats-section";
 import { BreadcrumbItem } from "~/lib/hooks/use-breadcrumbs";
-import { findAllBranches } from "~/models/branch.server";
+import {
+  findAllBranches,
+  type BranchSortField,
+} from "~/models/branch.server";
 import { findAllDeployments } from "~/models/deployment.server";
 import { getSystemStats } from "~/models/system.server";
 
 export type Loader = typeof loader;
 
-export const loader = async () => {
+export const loader = async ({ request }: LoaderFunctionArgs) => {
+  const url = new URL(request.url);
+  const sortParam = url.searchParams.get("sort");
+  const sort: BranchSortField =
+    sortParam === "lastRebuiltAt" ? "lastRebuiltAt" : "name";
+
   const [systemStats, branches, deployments] = await Promise.all([
     getSystemStats(),
-    findAllBranches(),
+    findAllBranches(sort),
     findAllDeployments({ limit: 25 }),
   ]);
   return {
@@ -25,6 +35,7 @@ export const loader = async () => {
     branches,
     deployments,
     deployDomain: DEPLOY_DOMAIN,
+    sort,
   };
 };
 
@@ -40,8 +51,21 @@ export const handle = {
 };
 
 export default function Index() {
-  const { stats, branches, deployDomain, deployments } =
+  const { stats, branches, deployDomain, deployments, sort } =
     useLoaderData<Loader>();
+  const [, setSearchParams] = useSearchParams();
+
+  function handleSortChange(newSort: string) {
+    setSearchParams((prev) => {
+      if (newSort === "name") {
+        prev.delete("sort");
+      } else {
+        prev.set("sort", newSort);
+      }
+      return prev;
+    });
+  }
+
   return (
     <>
       <div className="relative">
@@ -51,6 +75,7 @@ export default function Index() {
             <h1 className="text-base font-semibold leading-7 text-white">
               Branch previews
             </h1>
+            <SortSelector value={sort} onChange={handleSortChange} />
           </header>
           <BranchPreviews branches={branches} deployDomain={deployDomain} />
         </main>

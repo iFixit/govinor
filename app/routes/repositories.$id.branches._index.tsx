@@ -15,7 +15,10 @@ import { DeleteDeploymentJob } from "~/jobs/delete-deployment-job.server";
 import { PushJob } from "~/jobs/push-job.server";
 import { flashMessage } from "~/lib/flash";
 import { commitSession, getSession } from "~/lib/session.server";
-import type { BranchItem } from "~/models/branch.server";
+import {
+  type BranchItem,
+  touchBranchLastRebuiltAt,
+} from "~/models/branch.server";
 
 enum Intent {
   Redeploy = "redeploy",
@@ -30,6 +33,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     case Intent.Redeploy: {
       const branchName = requireBranchName(formData);
       try {
+        await touchBranchLastRebuiltAt(branchName);
         await PushJob.performLater({
           branch: branchName,
         });
@@ -106,7 +110,7 @@ function getErrorMessage(error: unknown): string {
 }
 
 interface BranchActionsProps {
-  branch: BranchItem;
+  branch: Pick<BranchItem, "name" | "repository">;
 }
 
 export function BranchActions({ branch }: BranchActionsProps) {
