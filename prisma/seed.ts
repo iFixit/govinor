@@ -11,6 +11,11 @@ function getBranchHandle(branchName: string) {
 }
 
 async function seed() {
+  if (process.env.NODE_ENV === "production") {
+    console.error("Seeding is not allowed in production.");
+    process.exit(1);
+  }
+
   const repo = await prisma.repository.create({
     data: {
       id: crypto.randomUUID(),
