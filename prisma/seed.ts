@@ -1,22 +1,42 @@
+import crypto from "crypto";
 import { faker } from "@faker-js/faker";
-import { prisma } from "~/lib/db.server";
-import { upsertBranch } from "~/models/branch.server";
-import { createRepository } from "~/models/repository.server";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 const BRANCH_COUNT = 10;
 
+function getBranchHandle(branchName: string) {
+  return branchName.replace(/[^a-zA-Z0-9]/g, "-");
+}
+
 async function seed() {
-  const repo = await createRepository({
-    name: "ifixit",
-    owner: "iFixit",
-    dockerComposeDirectory: "./apps/strapi",
+  const repo = await prisma.repository.create({
+    data: {
+      id: crypto.randomUUID(),
+      owner: "iFixit",
+      name: "ifixit",
+      fullName: "iFixit/ifixit",
+      dockerComposeDirectory: "./apps/strapi",
+    },
   });
+
+  const usedNames = new Set<string>();
   for (let i = 0; i < BRANCH_COUNT; i++) {
-    await upsertBranch({
-      branchName: faker.git.branch(),
-      cloneUrl: "https://github.com/iFixit/react-commerce.git",
-      dockerComposeDirectory: "./backend",
-      repositoryId: repo.id,
+    let branchName: string;
+    do {
+      branchName = faker.git.branch();
+    } while (usedNames.has(branchName));
+    usedNames.add(branchName);
+
+    await prisma.branch.create({
+      data: {
+        name: branchName,
+        handle: getBranchHandle(branchName),
+        cloneUrl: "https://github.com/iFixit/react-commerce.git",
+        dockerComposeDirectory: "./backend",
+        repositoryId: repo.id,
+      },
     });
   }
 
