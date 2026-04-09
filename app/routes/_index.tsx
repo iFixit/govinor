@@ -57,7 +57,7 @@ export default function Index() {
 
   function handleSortChange(newSort: string) {
     setSearchParams((prev) => {
-      if (newSort === "name") {
+      if (newSort === "updatedAt") {
         prev.delete("sort");
       } else {
         prev.set("sort", newSort);
