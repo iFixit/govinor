@@ -63,7 +63,7 @@ export default function Index() {
             <h1 className="text-base font-semibold leading-7 text-white">
               Branch previews
             </h1>
-            <SortSelector defaultValue={sort} />
+            <SortSelector key={sort} defaultValue={sort} />
           </header>
           <BranchPreviews branches={branches} deployDomain={deployDomain} />
         </main>

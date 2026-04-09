@@ -1,7 +1,7 @@
 import { Job } from "bullmq";
 import { BaseJob } from "~/lib/jobs.server";
 import { JobProgressLogger } from "~/lib/logger";
-import { findBranch } from "~/models/branch.server";
+import { findBranch, touchBranch } from "~/models/branch.server";
 import { deploy } from "~/models/commands/deploy.server";
 
 const queueName = "push";
@@ -18,6 +18,7 @@ export class PushJob extends BaseJob<PushJobPayload, PushJobResult> {
   protected async perform(job: Job<PushJobPayload>) {
     const branchName = job.data.branch;
     const logger = new JobProgressLogger(job);
+    await touchBranch(branchName);
     const branch = await findBranch(branchName);
     if (branch == null) {
       throw new Error(`Branch "${branchName}" not found`);
