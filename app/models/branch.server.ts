@@ -2,11 +2,18 @@ import { Prisma } from "@prisma/client";
 import { getBranchHandle } from "~/helpers/deployment-helpers";
 import { prisma } from "~/lib/db.server";
 
+export type BranchSortField = "name" | "updatedAt";
+
 export type BranchItem = NonNullable<
   Awaited<ReturnType<typeof findAllBranches>>
 >[number];
 
-export async function findAllBranches() {
+export async function findAllBranches(sort: BranchSortField = "updatedAt") {
+  const orderBy =
+    sort === "updatedAt"
+      ? { updatedAt: Prisma.SortOrder.desc }
+      : { name: Prisma.SortOrder.asc };
+
   return prisma.branch.findMany({
     take: 250,
     select: {
@@ -14,6 +21,8 @@ export async function findAllBranches() {
       handle: true,
       cloneUrl: true,
       dockerComposeDirectory: true,
+      createdAt: true,
+      updatedAt: true,
       repository: {
         select: {
           id: true,
@@ -21,9 +30,7 @@ export async function findAllBranches() {
         },
       },
     },
-    orderBy: {
-      name: Prisma.SortOrder.asc,
-    },
+    orderBy,
   });
 }
 
@@ -82,6 +89,13 @@ export async function upsertBranch(input: UpsertBranchInput) {
       cloneUrl: true,
       dockerComposeDirectory: true,
     },
+  });
+}
+
+export async function touchBranch(branchName: string) {
+  return prisma.branch.update({
+    where: { name: branchName },
+    data: { updatedAt: new Date() },
   });
 }
 

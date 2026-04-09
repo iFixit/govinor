@@ -17,6 +17,8 @@ model Branch {
   dockerComposeDirectory String
   repository             Repository? @relation(fields: [repositoryId], references: [id])
   repositoryId           String?
+  createdAt              DateTime    @default(now())
+  updatedAt              DateTime    @updatedAt
 }
 
 model Repository {

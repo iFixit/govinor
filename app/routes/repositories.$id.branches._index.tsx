@@ -15,7 +15,7 @@ import { DeleteDeploymentJob } from "~/jobs/delete-deployment-job.server";
 import { PushJob } from "~/jobs/push-job.server";
 import { flashMessage } from "~/lib/flash";
 import { commitSession, getSession } from "~/lib/session.server";
-import type { BranchItem } from "~/models/branch.server";
+import { type BranchItem } from "~/models/branch.server";
 
 enum Intent {
   Redeploy = "redeploy",
@@ -106,7 +106,7 @@ function getErrorMessage(error: unknown): string {
 }
 
 interface BranchActionsProps {
-  branch: BranchItem;
+  branch: Pick<BranchItem, "name" | "repository">;
 }
 
 export function BranchActions({ branch }: BranchActionsProps) {

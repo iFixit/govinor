@@ -1,8 +1,10 @@
-import type { BranchItem } from "~/models/branch.server";
+import dayjs from "dayjs";
+import { useHumanReadableDateTime } from "~/helpers/date-helpers";
+import type { LoaderData } from "~/routes/_index";
 import { BranchActions } from "~/routes/repositories.$id.branches._index";
 
 interface BranchPreviewsProps {
-  branches: BranchItem[];
+  branches: LoaderData["branches"];
   deployDomain: string;
 }
 
@@ -35,6 +37,16 @@ export function BranchPreviews({
               </div>
               <div className="mt-3 flex items-center gap-x-2.5 text-xs leading-5 text-gray-400">
                 <p className="truncate">Deployed from {repositoryFullName}</p>
+                <svg
+                  viewBox="0 0 2 2"
+                  className="h-0.5 w-0.5 flex-none fill-gray-300"
+                >
+                  <circle cx={1} cy={1} r={1} />
+                </svg>
+                <p className="whitespace-nowrap">
+                  Updated{" "}
+                  {useHumanReadableDateTime(dayjs(branch.updatedAt))}
+                </p>
               </div>
             </div>
             <div className="flex flex-none items-center gap-x-4">
