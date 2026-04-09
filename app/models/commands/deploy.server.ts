@@ -238,6 +238,40 @@ export async function destroy({
   }
 }
 
+interface StopOptions extends BaseOptions {
+  branch: Pick<Branch, "name" | "handle" | "dockerComposeDirectory">;
+}
+
+/**
+ * Stop a deployment's containers without destroying files or DB record.
+ * Lighter than destroy — allows fast restart on next deploy.
+ */
+export async function stop({ logger, branch }: StopOptions): Promise<void> {
+  if (process.env.NODE_ENV !== "production") {
+    await logger?.info(`[dev] Simulating stop for "${branch.name}"`);
+    return;
+  }
+  const info = createInfo(logger);
+  const shell = new Shell(logger);
+
+  const hasDomainRoute = await hasDomainRouteForHandle(branch.handle);
+  if (hasDomainRoute) {
+    await info("Removing domain route for stopped branch..");
+    await shell.run(removeCaddyRouteCommand({ branchHandle: branch.handle }));
+  }
+
+  const branchFolderExists = await hasBranchFolder(branch.handle);
+  if (branchFolderExists) {
+    await info(`Stopping containers for "${branch.name}"..`);
+    await shell.run(
+      dockerComposeStopCommand({
+        branchHandle: branch.handle,
+        rootDirectory: branch.dockerComposeDirectory,
+      })
+    );
+  }
+}
+
 async function doesDeploymentWithHandleExist(handle: string): Promise<boolean> {
   const handles = await getBranchFolderNames();
   return handles.includes(handle);
@@ -459,4 +493,20 @@ async function getBranchFolderName(branchHandle: string) {
 async function hasBranchFolder(branchHandle: string) {
   const name = await getBranchFolderName(branchHandle);
   return name != null;
+}
+
+function dockerComposeStopCommand({
+  branchHandle,
+  rootDirectory,
+}: DockerComposeDownCommandOptions): SpawnCommand {
+  const workingDirectory = getRepoDeployPath({
+    branchHandle,
+    rootDirectory,
+  });
+  return {
+    type: "spawn-command",
+    command: "docker",
+    args: ["compose", "-p", branchHandle, "stop"],
+    workingDirectory,
+  };
 }

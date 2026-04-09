@@ -1,8 +1,13 @@
 import { Job } from "bullmq";
 import { BaseJob } from "~/lib/jobs.server";
 import { JobProgressLogger } from "~/lib/logger";
-import { findBranch, touchBranch } from "~/models/branch.server";
+import {
+  findBranch,
+  touchBranch,
+  updateBranchContainerStatus,
+} from "~/models/branch.server";
 import { deploy } from "~/models/commands/deploy.server";
+import { ensureMemoryAvailable } from "~/models/commands/ensure-memory.server";
 
 const queueName = "push";
 
@@ -23,10 +28,15 @@ export class PushJob extends BaseJob<PushJobPayload, PushJobResult> {
     if (branch == null) {
       throw new Error(`Branch "${branchName}" not found`);
     }
+    await ensureMemoryAvailable({
+      logger,
+      excludeBranches: [branchName],
+    });
     await deploy({
       branch,
       logger,
     });
+    await updateBranchContainerStatus(branchName, "running");
     return `Deployed branch "${branchName}"`;
   }
 

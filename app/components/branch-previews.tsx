@@ -1,5 +1,6 @@
 import dayjs from "dayjs";
 import { useHumanReadableDateTime } from "~/helpers/date-helpers";
+import { classNames } from "~/helpers/ui-helpers";
 import type { LoaderData } from "~/routes/_index";
 import { BranchActions } from "~/routes/repositories.$id.branches._index";
 
@@ -24,6 +25,16 @@ export function BranchPreviews({
           >
             <div className="min-w-0 flex-auto">
               <div className="flex items-center gap-x-3">
+                <div
+                  className={classNames(
+                    "flex-none rounded-full p-1",
+                    branch.containerStatus === "running"
+                      ? "bg-green-400/10 text-green-400"
+                      : "bg-gray-400/10 text-gray-400"
+                  )}
+                >
+                  <div className="h-2 w-2 rounded-full bg-current" />
+                </div>
                 <h2 className="min-w-0 text-sm font-semibold leading-6 text-white">
                   <a
                     href={`https://${branch.handle}.${deployDomain}/admin`}
@@ -50,13 +61,19 @@ export function BranchPreviews({
               </div>
             </div>
             <div className="flex flex-none items-center gap-x-4">
-              <a
-                href={`https://${branch.handle}.${deployDomain}/admin`}
-                target="_blank"
-                className="hidden rounded-md bg-white/10 px-2.5 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-white/20 sm:block"
-              >
-                Preview <span className="sr-only">, {branch.name}</span>
-              </a>
+              {branch.containerStatus === "running" ? (
+                <a
+                  href={`https://${branch.handle}.${deployDomain}/admin`}
+                  target="_blank"
+                  className="hidden rounded-md bg-white/10 px-2.5 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-white/20 sm:block"
+                >
+                  Preview <span className="sr-only">, {branch.name}</span>
+                </a>
+              ) : (
+                <span className="hidden rounded-md bg-gray-500/10 px-2.5 py-1.5 text-sm font-semibold text-gray-500 sm:block">
+                  Stopped
+                </span>
+              )}
               <BranchActions branch={branch} />
             </div>
           </li>

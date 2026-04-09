@@ -27,3 +27,10 @@ export const STRAPI_ADMIN_BACKEND_URL =
 export const GITHUB_API_TOKEN = process.env.GITHUB_API_TOKEN;
 
 export const DEEPL_API_KEY = process.env.DEEPL_API_KEY;
+
+const DEFAULT_MEMORY_THRESHOLD_MB = 1536;
+export const DEPLOY_MEMORY_THRESHOLD_BYTES =
+  (parseInt(process.env.DEPLOY_MEMORY_THRESHOLD_MB ?? "", 10) ||
+    DEFAULT_MEMORY_THRESHOLD_MB) *
+  1024 *
+  1024;

@@ -21,6 +21,7 @@ export async function findAllBranches(sort: BranchSortField = "updatedAt") {
       handle: true,
       cloneUrl: true,
       dockerComposeDirectory: true,
+      containerStatus: true,
       createdAt: true,
       updatedAt: true,
       repository: {
@@ -46,6 +47,7 @@ export async function findBranch(branchName: string) {
       handle: true,
       cloneUrl: true,
       dockerComposeDirectory: true,
+      containerStatus: true,
       repository: {
         select: {
           id: true,
@@ -104,5 +106,44 @@ export async function deleteBranch(branchName: string) {
     where: {
       name: branchName,
     },
+  });
+}
+
+export async function updateBranchContainerStatus(
+  branchName: string,
+  containerStatus: "running" | "stopped"
+) {
+  return prisma.branch.update({
+    where: { name: branchName },
+    data: { containerStatus },
+  });
+}
+
+export async function findOldestRunningBranches(options?: {
+  exclude?: string[];
+}) {
+  return prisma.branch.findMany({
+    where: {
+      containerStatus: "running",
+      ...(options?.exclude?.length
+        ? { name: { notIn: options.exclude } }
+        : {}),
+    },
+    select: {
+      name: true,
+      handle: true,
+      cloneUrl: true,
+      dockerComposeDirectory: true,
+      containerStatus: true,
+      repository: {
+        select: {
+          id: true,
+          name: true,
+          owner: true,
+          fullName: true,
+        },
+      },
+    },
+    orderBy: { updatedAt: "asc" },
   });
 }
