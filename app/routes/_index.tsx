@@ -14,6 +14,7 @@ import { findAllDeployments } from "~/models/deployment.server";
 import { getSystemStats } from "~/models/system.server";
 
 export type Loader = typeof loader;
+export type LoaderData = ReturnType<typeof useLoaderData<Loader>>;
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);

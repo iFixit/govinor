@@ -1,15 +1,10 @@
 import dayjs from "dayjs";
 import { useHumanReadableDateTime } from "~/helpers/date-helpers";
-import type { BranchItem } from "~/models/branch.server";
+import type { LoaderData } from "~/routes/_index";
 import { BranchActions } from "~/routes/repositories.$id.branches._index";
 
-type SerializedBranch = Omit<BranchItem, "createdAt" | "updatedAt"> & {
-  createdAt: string;
-  updatedAt: string;
-};
-
 interface BranchPreviewsProps {
-  branches: SerializedBranch[];
+  branches: LoaderData["branches"];
   deployDomain: string;
 }
 
