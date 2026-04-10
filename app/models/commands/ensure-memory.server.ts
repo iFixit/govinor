@@ -1,4 +1,5 @@
 import { DEPLOY_MEMORY_THRESHOLD_BYTES } from "~/../config/env.server";
+import { PROTECTED_BRANCHES } from "~/helpers/branch-helpers";
 import { Logger } from "~/lib/logger";
 import {
   findOldestRunningBranches,
@@ -30,7 +31,7 @@ export async function ensureMemoryAvailable({
   );
 
   const candidates = await findOldestRunningBranches({
-    exclude: excludeBranches,
+    exclude: [...excludeBranches, ...PROTECTED_BRANCHES],
   });
 
   for (const candidate of candidates) {
