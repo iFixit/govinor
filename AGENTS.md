@@ -66,6 +66,10 @@ npm run deploy           # Build + migrate + restart systemd service
 
 Remix 2.6, React 18, TypeScript (strict), Prisma 4 (SQLite), BullMQ (Redis), Tailwind CSS 3 (JIT), Headless UI, Octokit, Zod, dayjs
 
+## Pull Requests
+
+PRs are squash-merged, so the PR title becomes the commit on `main`. Use conventional commits syntax (`feat:`, `fix:`, `refactor:`, `chore:`, etc., with optional scope) for PR titles.
+
 ## Dev Environment
 
 - Node.js v20+ (see `.nvmrc` for exact version)

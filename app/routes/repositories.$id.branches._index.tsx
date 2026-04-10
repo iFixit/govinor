@@ -8,6 +8,7 @@ import { ActionFunctionArgs, redirect } from "@remix-run/node";
 import { Form } from "@remix-run/react";
 import { Fragment } from "react";
 import invariant from "tiny-invariant";
+import { isProtectedBranch } from "~/helpers/branch-helpers";
 import { MessageType } from "~/components/global-notification";
 import { branchesPath } from "~/helpers/path-helpers";
 import { classNames } from "~/helpers/ui-helpers";
@@ -163,6 +164,16 @@ export function BranchActions({ branch }: BranchActionsProps) {
                 action={branchesPath(repository)}
                 method="POST"
                 reloadDocument
+                onSubmit={(e) => {
+                  if (
+                    isProtectedBranch(branch.name) &&
+                    !window.confirm(
+                      `"${branch.name}" is used to seed data for other deployments. Are you sure you want to remove it?`
+                    )
+                  ) {
+                    e.preventDefault();
+                  }
+                }}
                 className={classNames(
                   active ? "bg-red-100" : "",
                   "text-sm leading-6 text-red-600 cursor-pointer"
