@@ -17,6 +17,10 @@ export async function ensureMemoryAvailable({
   logger,
   excludeBranches = [],
 }: EnsureMemoryOptions): Promise<void> {
+  if (process.env.NODE_ENV !== "production") {
+    await logger?.info("[dev] Skipping memory check");
+    return;
+  }
   let availableMemory = await getAvailableMemoryBytes();
 
   if (availableMemory >= DEPLOY_MEMORY_THRESHOLD_BYTES) {

@@ -14,7 +14,7 @@ import { isPresent } from "~/helpers/application-helpers";
 import { getRepoDeployPath } from "~/helpers/deployment-helpers";
 import { Logger } from "~/lib/logger";
 import { Shell, SpawnCommand } from "~/lib/shell.server";
-import { Branch } from "../branch.server";
+import { Branch, updateBranchContainerStatus } from "../branch.server";
 import { cloneRepoCommand } from "./clone-repo";
 import { fetchLatestChangesCommand } from "./fetch-latest-changes";
 import { resetLocalBranchCommand } from "./reset-local-branch";
@@ -154,6 +154,7 @@ export async function deploy({ logger, branch }: DeployOptions): Promise<void> {
       rootDirectory: branch.dockerComposeDirectory,
     })
   );
+  await updateBranchContainerStatus(branch.name, "running");
   const hasDomainRoute = await hasDomainRouteForHandle(branch.handle);
   if (!hasDomainRoute) {
     await info("Assigning domain to deployment..");
@@ -269,6 +270,14 @@ export async function stop({ logger, branch }: StopOptions): Promise<void> {
         rootDirectory: branch.dockerComposeDirectory,
       })
     );
+    // Release the host port so it can't collide with another deployment
+    // that grabs it while this branch is stopped. The next deploy will
+    // allocate a fresh free port.
+    await removeEnvVariable({
+      name: "HOST_PORT",
+      branchHandle: branch.handle,
+      rootDirectory: branch.dockerComposeDirectory,
+    });
   }
 }
 
@@ -322,6 +331,38 @@ async function upsertEnvVariable({
 
   const env = result ? parse(result) : {};
   env[variable.name] = String(variable.value);
+  await fs.writeFile(envPath, stringify(env), "utf8");
+}
+
+interface RemoveEnvVariableOptions {
+  name: string;
+  branchHandle: string;
+  rootDirectory?: string;
+}
+
+async function removeEnvVariable({
+  name,
+  branchHandle,
+  rootDirectory,
+}: RemoveEnvVariableOptions): Promise<void> {
+  const workingDirectory = getRepoDeployPath({
+    rootDirectory,
+    branchHandle,
+  });
+  const envPath = `${workingDirectory}/.env`;
+
+  let result: string | undefined;
+  try {
+    result = await fs.readFile(envPath, "utf8");
+  } catch (error) {
+    return;
+  }
+
+  const env = parse(result);
+  if (!(name in env)) {
+    return;
+  }
+  delete env[name];
   await fs.writeFile(envPath, stringify(env), "utf8");
 }
 

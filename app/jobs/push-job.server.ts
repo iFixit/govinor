@@ -1,11 +1,7 @@
 import { Job } from "bullmq";
 import { BaseJob } from "~/lib/jobs.server";
 import { JobProgressLogger } from "~/lib/logger";
-import {
-  findBranch,
-  touchBranch,
-  updateBranchContainerStatus,
-} from "~/models/branch.server";
+import { findBranch, touchBranch } from "~/models/branch.server";
 import { deploy } from "~/models/commands/deploy.server";
 import { ensureMemoryAvailable } from "~/models/commands/ensure-memory.server";
 
@@ -36,7 +32,6 @@ export class PushJob extends BaseJob<PushJobPayload, PushJobResult> {
       branch,
       logger,
     });
-    await updateBranchContainerStatus(branchName, "running");
     return `Deployed branch "${branchName}"`;
   }
 

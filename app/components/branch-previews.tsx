@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
+import { StatusIndicator } from "~/components/status-indicator";
 import { useHumanReadableDateTime } from "~/helpers/date-helpers";
-import { classNames } from "~/helpers/ui-helpers";
 import type { LoaderData } from "~/routes/_index";
 import { BranchActions } from "~/routes/repositories.$id.branches._index";
 
@@ -25,25 +25,20 @@ export function BranchPreviews({
           >
             <div className="min-w-0 flex-auto">
               <div className="flex items-center gap-x-3">
-                <div
-                  className={classNames(
-                    "flex-none rounded-full p-1",
-                    branch.containerStatus === "running"
-                      ? "bg-green-400/10 text-green-400"
-                      : "bg-gray-400/10 text-gray-400"
-                  )}
-                >
-                  <div className="h-2 w-2 rounded-full bg-current" />
-                </div>
+                <StatusIndicator status={branch.containerStatus} />
                 <h2 className="min-w-0 text-sm font-semibold leading-6 text-white">
-                  <a
-                    href={`https://${branch.handle}.${deployDomain}/admin`}
-                    target="_blank"
-                    className="flex gap-x-2"
-                  >
+                  {branch.containerStatus === "running" ? (
+                    <a
+                      href={`https://${branch.handle}.${deployDomain}/admin`}
+                      target="_blank"
+                      className="flex gap-x-2"
+                    >
+                      <span className="whitespace-nowrap">{branch.name}</span>
+                      <span className="absolute inset-0" />
+                    </a>
+                  ) : (
                     <span className="whitespace-nowrap">{branch.name}</span>
-                    <span className="absolute inset-0" />
-                  </a>
+                  )}
                 </h2>
               </div>
               <div className="mt-3 flex items-center gap-x-2.5 text-xs leading-5 text-gray-400">
