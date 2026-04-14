@@ -154,18 +154,37 @@ export async function deploy({ logger, branch }: DeployOptions): Promise<void> {
       rootDirectory: branch.dockerComposeDirectory,
     })
   );
-  await updateBranchContainerStatus(branch.name, "running");
-  const hasDomainRoute = await hasDomainRouteForHandle(branch.handle);
-  if (!hasDomainRoute) {
-    await info("Assigning domain to deployment..");
-    await shell.run(
-      addCaddyRouteCommand({
-        port,
-        branchHandle: branch.handle,
-        rootDirectory: branch.dockerComposeDirectory,
-      })
-    );
+  // Only mark running once the preview route is in place, so the
+  // dashboard invariant holds: containerStatus === "running" ⟺ the
+  // preview is actually reachable. If route assignment fails we tear
+  // the containers back down so we don't leak memory on a branch the
+  // UI can no longer show.
+  try {
+    const hasDomainRoute = await hasDomainRouteForHandle(branch.handle);
+    if (!hasDomainRoute) {
+      await info("Assigning domain to deployment..");
+      await shell.run(
+        addCaddyRouteCommand({
+          port,
+          branchHandle: branch.handle,
+          rootDirectory: branch.dockerComposeDirectory,
+        })
+      );
+    }
+  } catch (error) {
+    await info("Route assignment failed, rolling back containers..");
+    try {
+      await stop({ logger, branch });
+    } catch (rollbackError) {
+      await info(
+        rollbackError instanceof Error
+          ? `Rollback failed: ${rollbackError.message}`
+          : "Rollback failed with unknown error"
+      );
+    }
+    throw error;
   }
+  await updateBranchContainerStatus(branch.name, "running");
 }
 
 function createInfo(
