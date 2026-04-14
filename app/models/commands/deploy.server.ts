@@ -267,37 +267,41 @@ interface StopOptions extends BaseOptions {
  * Lighter than destroy — allows fast restart on next deploy.
  */
 export async function stop({ logger, branch }: StopOptions): Promise<void> {
-  if (process.env.NODE_ENV !== "production") {
-    await logger?.info(`[dev] Simulating stop for "${branch.name}"`);
-    return;
-  }
-  const info = createInfo(logger);
-  const shell = new Shell(logger);
+  if (process.env.NODE_ENV === "production") {
+    const info = createInfo(logger);
+    const shell = new Shell(logger);
 
-  const hasDomainRoute = await hasDomainRouteForHandle(branch.handle);
-  if (hasDomainRoute) {
-    await info("Removing domain route for stopped branch..");
-    await shell.run(removeCaddyRouteCommand({ branchHandle: branch.handle }));
-  }
+    const hasDomainRoute = await hasDomainRouteForHandle(branch.handle);
+    if (hasDomainRoute) {
+      await info("Removing domain route for stopped branch..");
+      await shell.run(removeCaddyRouteCommand({ branchHandle: branch.handle }));
+    }
 
-  const branchFolderExists = await hasBranchFolder(branch.handle);
-  if (branchFolderExists) {
-    await info(`Stopping containers for "${branch.name}"..`);
-    await shell.run(
-      dockerComposeStopCommand({
+    const branchFolderExists = await hasBranchFolder(branch.handle);
+    if (branchFolderExists) {
+      await info(`Stopping containers for "${branch.name}"..`);
+      await shell.run(
+        dockerComposeStopCommand({
+          branchHandle: branch.handle,
+          rootDirectory: branch.dockerComposeDirectory,
+        })
+      );
+      // Release the host port so it can't collide with another deployment
+      // that grabs it while this branch is stopped. The next deploy will
+      // allocate a fresh free port.
+      await removeEnvVariable({
+        name: "HOST_PORT",
         branchHandle: branch.handle,
         rootDirectory: branch.dockerComposeDirectory,
-      })
-    );
-    // Release the host port so it can't collide with another deployment
-    // that grabs it while this branch is stopped. The next deploy will
-    // allocate a fresh free port.
-    await removeEnvVariable({
-      name: "HOST_PORT",
-      branchHandle: branch.handle,
-      rootDirectory: branch.dockerComposeDirectory,
-    });
+      });
+    }
+  } else {
+    await logger?.info(`[dev] Simulating stop for "${branch.name}"`);
   }
+  // Own the DB transition so callers (deploy's rollback path,
+  // ensureMemoryAvailable) can't leave the row out of sync with the
+  // side effects we just performed.
+  await updateBranchContainerStatus(branch.name, "stopped");
 }
 
 async function doesDeploymentWithHandleExist(handle: string): Promise<boolean> {

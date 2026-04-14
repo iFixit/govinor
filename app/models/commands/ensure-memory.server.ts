@@ -1,10 +1,7 @@
 import { DEPLOY_MEMORY_THRESHOLD_BYTES } from "~/../config/env.server";
 import { PROTECTED_BRANCHES } from "~/helpers/branch-helpers";
 import { Logger } from "~/lib/logger";
-import {
-  findOldestRunningBranches,
-  updateBranchContainerStatus,
-} from "~/models/branch.server";
+import { findOldestRunningBranches } from "~/models/branch.server";
 import { getAvailableMemoryBytes } from "~/models/system.server";
 import { stop } from "./deploy.server";
 
@@ -45,7 +42,6 @@ export async function ensureMemoryAvailable({
 
     await logger?.info(`Stopping branch "${candidate.name}" to free memory..`);
     await stop({ logger, branch: candidate });
-    await updateBranchContainerStatus(candidate.name, "stopped");
 
     availableMemory = await getAvailableMemoryBytes();
     await logger?.info(
