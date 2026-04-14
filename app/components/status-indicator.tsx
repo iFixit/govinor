@@ -12,6 +12,7 @@ export function StatusIndicator({ className, status }: StatusIndicatorProps) {
         "flex-none rounded-full p-1",
         status === "completed" && "bg-green-400/10 text-green-400",
         status === "running" && "bg-green-400/10 text-green-400",
+        status === "deploying" && "bg-blue-400/10 text-blue-400 animate-pulse",
         status === "failed" && "bg-rose-400/10 text-rose-400",
         status === "delayed" && "bg-yellow-400/10 text-yellow-400",
         status === "active" && "bg-blue-400/10 text-blue-400",

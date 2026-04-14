@@ -64,6 +64,10 @@ export function BranchPreviews({
                 >
                   Preview <span className="sr-only">, {branch.name}</span>
                 </a>
+              ) : branch.containerStatus === "deploying" ? (
+                <span className="hidden rounded-md bg-blue-500/10 px-2.5 py-1.5 text-sm font-semibold text-blue-400 animate-pulse sm:block">
+                  Deploying…
+                </span>
               ) : (
                 <span className="hidden rounded-md bg-gray-500/10 px-2.5 py-1.5 text-sm font-semibold text-gray-500 sm:block">
                   Stopped
