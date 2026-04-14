@@ -14,8 +14,13 @@ import { isPresent } from "~/helpers/application-helpers";
 import { getRepoDeployPath } from "~/helpers/deployment-helpers";
 import { Logger } from "~/lib/logger";
 import { Shell, SpawnCommand } from "~/lib/shell.server";
-import { Branch, updateBranchContainerStatus } from "../branch.server";
+import {
+  Branch,
+  setBranchActivity,
+  updateBranchContainerStatus,
+} from "../branch.server";
 import { cloneRepoCommand } from "./clone-repo";
+import { ensureMemoryAvailable } from "./ensure-memory.server";
 import { fetchLatestChangesCommand } from "./fetch-latest-changes";
 import { resetLocalBranchCommand } from "./reset-local-branch";
 
@@ -37,10 +42,27 @@ interface DeployOptions extends BaseOptions {
  * @param options Options for the deployment.
  */
 export async function deploy({ logger, branch }: DeployOptions): Promise<void> {
-  if (process.env.NODE_ENV !== "production") {
-    await logger?.info(`[dev] Simulating deploy for "${branch.name}"`);
-    return;
+  await setBranchActivity(branch.name, "deploying");
+  try {
+    await ensureMemoryAvailable({
+      logger,
+      excludeBranches: [branch.name],
+    });
+    if (process.env.NODE_ENV !== "production") {
+      await simulateDeploy({ logger, branch });
+    } else {
+      await runDeploy({ logger, branch });
+    }
+  } finally {
+    // Clear activity regardless of outcome. containerStatus is
+    // owned by runDeploy()/stop() and already reflects reality — a
+    // failed redeploy of a live branch stays "running", a failed
+    // fresh deploy stays "stopped".
+    await setBranchActivity(branch.name, "idle");
   }
+}
+
+async function runDeploy({ logger, branch }: DeployOptions): Promise<void> {
   invariant(branch.repository, "Branch must have a repository to deploy.");
   const info = createInfo(logger);
   const shell = new Shell(logger);
@@ -185,6 +207,24 @@ export async function deploy({ logger, branch }: DeployOptions): Promise<void> {
     throw error;
   }
   await updateBranchContainerStatus(branch.name, "running");
+}
+
+async function simulateDeploy({
+  logger,
+  branch,
+}: DeployOptions): Promise<void> {
+  const info = createInfo(logger);
+  await info(`[dev] Simulating deploy for "${branch.name}"..`);
+  await info("[dev] Simulating build..");
+  await sleep(2000);
+  await info("[dev] Simulating container start..");
+  await sleep(1000);
+  await info("[dev] Deploy complete");
+  await updateBranchContainerStatus(branch.name, "running");
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function createInfo(
@@ -332,7 +372,7 @@ async function getDeploymentPort(
       return undefined;
     }
     return port;
-  } catch (error) {}
+  } catch (error) { }
   return undefined;
 }
 
@@ -350,7 +390,7 @@ async function upsertEnvVariable({
   let result: string | undefined;
   try {
     result = await fs.readFile(envPath, "utf8");
-  } catch (error) {}
+  } catch (error) { }
 
   const env = result ? parse(result) : {};
   env[variable.name] = String(variable.value);

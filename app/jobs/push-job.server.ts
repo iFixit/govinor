@@ -1,13 +1,8 @@
 import { Job } from "bullmq";
 import { BaseJob } from "~/lib/jobs.server";
 import { JobProgressLogger } from "~/lib/logger";
-import {
-  findBranch,
-  setBranchActivity,
-  touchBranch,
-} from "~/models/branch.server";
+import { findBranch, touchBranch } from "~/models/branch.server";
 import { deploy } from "~/models/commands/deploy.server";
-import { ensureMemoryAvailable } from "~/models/commands/ensure-memory.server";
 
 const queueName = "push";
 
@@ -28,24 +23,8 @@ export class PushJob extends BaseJob<PushJobPayload, PushJobResult> {
     if (branch == null) {
       throw new Error(`Branch "${branchName}" not found`);
     }
-    await setBranchActivity(branchName, "deploying");
-    try {
-      await ensureMemoryAvailable({
-        logger,
-        excludeBranches: [branchName],
-      });
-      await deploy({
-        branch,
-        logger,
-      });
-      return `Deployed branch "${branchName}"`;
-    } finally {
-      // Clear activity regardless of outcome. containerStatus is
-      // owned by deploy()/stop() and already reflects reality — a
-      // failed redeploy of a live branch stays "running", a failed
-      // fresh deploy stays "stopped".
-      await setBranchActivity(branchName, "idle");
-    }
+    await deploy({ branch, logger });
+    return `Deployed branch "${branchName}"`;
   }
 
   protected getJobName(payload: PushJobPayload): string {
