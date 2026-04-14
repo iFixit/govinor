@@ -1,5 +1,6 @@
 import { useLoaderData, useRevalidator } from "@remix-run/react";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
+import { useStableCallback } from "./use-stable-callback";
 
 export interface UseSWRDataOptions {
   intervalMillis?: number;
@@ -10,45 +11,36 @@ export function useSWRData<Data = any>({
 }: UseSWRDataOptions = {}) {
   const loaderData = useLoaderData<Data>();
   const revalidator = useRevalidator();
-
-  const intervalId = useRef<number | null>(null);
+  const revalidate = useStableCallback(revalidator.revalidate);
 
   useEffect(() => {
-    const handleFocus = () => {
-      // If the window is focused and intervalId is not set (meaning the interval is not running),
-      // start the interval
-      if (intervalId.current == null) {
-        intervalId.current = window.setInterval(
-          revalidator.revalidate,
-          intervalMillis
-        );
+    let intervalId: number | null = null;
+
+    const start = () => {
+      if (intervalId == null) {
+        intervalId = window.setInterval(revalidate, intervalMillis);
       }
     };
 
-    const handleBlur = () => {
-      // If the window is blurred and intervalId is set (meaning the interval is running),
-      // clear the interval
-      if (intervalId.current != null) {
-        window.clearInterval(intervalId.current);
-        intervalId.current = null;
+    const stop = () => {
+      if (intervalId != null) {
+        window.clearInterval(intervalId);
+        intervalId = null;
       }
     };
 
-    // Add the focus and blur listeners when the component mounts
-    window.addEventListener("focus", handleFocus);
-    window.addEventListener("blur", handleBlur);
+    if (document.hasFocus()) {
+      start();
+    }
+    window.addEventListener("focus", start);
+    window.addEventListener("blur", stop);
 
-    // Clean up the focus and blur listeners when the component unmounts
     return () => {
-      window.removeEventListener("focus", handleFocus);
-      window.removeEventListener("blur", handleBlur);
-
-      // Also clear the interval when the component unmounts
-      if (intervalId.current != null) {
-        window.clearInterval(intervalId.current);
-        intervalId.current = null;
-      }
+      window.removeEventListener("focus", start);
+      window.removeEventListener("blur", stop);
+      stop();
     };
-  }, [revalidator.revalidate, intervalMillis]);
+  }, [revalidate, intervalMillis]);
+
   return loaderData;
 }
