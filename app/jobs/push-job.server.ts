@@ -3,8 +3,8 @@ import { BaseJob } from "~/lib/jobs.server";
 import { JobProgressLogger } from "~/lib/logger";
 import {
   findBranch,
+  setBranchActivity,
   touchBranch,
-  updateBranchContainerStatus,
 } from "~/models/branch.server";
 import { deploy } from "~/models/commands/deploy.server";
 import { ensureMemoryAvailable } from "~/models/commands/ensure-memory.server";
@@ -28,7 +28,7 @@ export class PushJob extends BaseJob<PushJobPayload, PushJobResult> {
     if (branch == null) {
       throw new Error(`Branch "${branchName}" not found`);
     }
-    await updateBranchContainerStatus(branchName, "deploying");
+    await setBranchActivity(branchName, "deploying");
     try {
       await ensureMemoryAvailable({
         logger,
@@ -38,15 +38,14 @@ export class PushJob extends BaseJob<PushJobPayload, PushJobResult> {
         branch,
         logger,
       });
-    } catch (error) {
-      // Any failure before deploy() marks the branch running leaves
-      // the row stuck in "deploying". Caddy-rollback failures are
-      // already flipped to "stopped" by stop(); this is the safety
-      // net for everything else (clone, compose up, memory checks).
-      await updateBranchContainerStatus(branchName, "stopped");
-      throw error;
+      return `Deployed branch "${branchName}"`;
+    } finally {
+      // Clear activity regardless of outcome. containerStatus is
+      // owned by deploy()/stop() and already reflects reality — a
+      // failed redeploy of a live branch stays "running", a failed
+      // fresh deploy stays "stopped".
+      await setBranchActivity(branchName, "idle");
     }
-    return `Deployed branch "${branchName}"`;
   }
 
   protected getJobName(payload: PushJobPayload): string {

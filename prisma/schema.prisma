@@ -16,6 +16,7 @@ model Branch {
   cloneUrl               String
   dockerComposeDirectory String
   containerStatus        String      @default("stopped")
+  activity               String      @default("idle")
   repository             Repository? @relation(fields: [repositoryId], references: [id])
   repositoryId           String?
   createdAt              DateTime    @default(now())

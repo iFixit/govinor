@@ -18,6 +18,10 @@ export function BranchPreviews({
       {branches.map((branch) => {
         const repositoryFullName =
           branch.repository?.fullName ?? "react-commerce";
+        const isDeploying = branch.activity === "deploying";
+        const isReachable =
+          branch.containerStatus === "running" && !isDeploying;
+        const displayStatus = isDeploying ? "deploying" : branch.containerStatus;
         return (
           <li
             key={branch.handle}
@@ -25,9 +29,9 @@ export function BranchPreviews({
           >
             <div className="min-w-0 flex-auto">
               <div className="flex items-center gap-x-3">
-                <StatusIndicator status={branch.containerStatus} />
+                <StatusIndicator status={displayStatus} />
                 <h2 className="min-w-0 text-sm font-semibold leading-6 text-white">
-                  {branch.containerStatus === "running" ? (
+                  {isReachable ? (
                     <a
                       href={`https://${branch.handle}.${deployDomain}/admin`}
                       target="_blank"
@@ -56,7 +60,7 @@ export function BranchPreviews({
               </div>
             </div>
             <div className="flex flex-none items-center gap-x-4">
-              {branch.containerStatus === "running" ? (
+              {isReachable ? (
                 <a
                   href={`https://${branch.handle}.${deployDomain}/admin`}
                   target="_blank"
@@ -64,7 +68,7 @@ export function BranchPreviews({
                 >
                   Preview <span className="sr-only">, {branch.name}</span>
                 </a>
-              ) : branch.containerStatus === "deploying" ? (
+              ) : isDeploying ? (
                 <span className="hidden rounded-md bg-blue-500/10 px-2.5 py-1.5 text-sm font-semibold text-blue-400 animate-pulse sm:block">
                   Deploying…
                 </span>

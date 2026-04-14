@@ -22,6 +22,7 @@ export async function findAllBranches(sort: BranchSortField = "updatedAt") {
       cloneUrl: true,
       dockerComposeDirectory: true,
       containerStatus: true,
+      activity: true,
       createdAt: true,
       updatedAt: true,
       repository: {
@@ -48,6 +49,7 @@ export async function findBranch(branchName: string) {
       cloneUrl: true,
       dockerComposeDirectory: true,
       containerStatus: true,
+      activity: true,
       repository: {
         select: {
           id: true,
@@ -109,7 +111,8 @@ export async function deleteBranch(branchName: string) {
   });
 }
 
-export type BranchContainerStatus = "running" | "stopped" | "deploying";
+export type BranchContainerStatus = "running" | "stopped";
+export type BranchActivity = "idle" | "deploying";
 
 export async function updateBranchContainerStatus(
   branchName: string,
@@ -124,10 +127,20 @@ export async function updateBranchContainerStatus(
   });
 }
 
-export async function resetDeployingBranchesToStopped() {
+export async function setBranchActivity(
+  branchName: string,
+  activity: BranchActivity
+) {
   return prisma.branch.updateMany({
-    where: { containerStatus: "deploying" },
-    data: { containerStatus: "stopped" },
+    where: { name: branchName },
+    data: { activity },
+  });
+}
+
+export async function resetAllBranchesToIdle() {
+  return prisma.branch.updateMany({
+    where: { activity: { not: "idle" } },
+    data: { activity: "idle" },
   });
 }
 
@@ -137,6 +150,9 @@ export async function findOldestRunningBranches(options?: {
   return prisma.branch.findMany({
     where: {
       containerStatus: "running",
+      // Never recycle a branch that has work in flight — a redeploy
+      // of a running branch should not be torn down mid-flight.
+      activity: "idle",
       ...(options?.exclude?.length
         ? { name: { notIn: options.exclude } }
         : {}),
@@ -147,6 +163,7 @@ export async function findOldestRunningBranches(options?: {
       cloneUrl: true,
       dockerComposeDirectory: true,
       containerStatus: true,
+      activity: true,
       repository: {
         select: {
           id: true,

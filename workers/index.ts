@@ -1,5 +1,5 @@
 import { DeleteDeploymentJob } from "~/jobs/delete-deployment-job.server";
-import { resetDeployingBranchesToStopped } from "~/models/branch.server";
+import { resetAllBranchesToIdle } from "~/models/branch.server";
 import { PushJob } from "../app/jobs/push-job.server";
 import { connection } from "../config/jobs";
 
@@ -8,13 +8,14 @@ let deleteDeploymentJob: DeleteDeploymentJob;
 
 checkRedisConnection().then(async () => {
   console.log("redis is ready");
-  // Any branch left in "deploying" at worker startup belongs to a
-  // previous worker run that crashed mid-deploy. Reset them so the
-  // UI doesn't show a forever-pulsating indicator and the recycler
-  // can reclaim their containers if memory gets tight.
-  const { count } = await resetDeployingBranchesToStopped();
+  // Any non-idle activity at worker startup belongs to a previous
+  // worker run that crashed mid-job. Clear it so the UI doesn't
+  // show a forever-pulsating indicator. containerStatus is left
+  // alone — a branch that was actually running before the crash
+  // stays "running", so the recycler and dashboard still see it.
+  const { count } = await resetAllBranchesToIdle();
   if (count > 0) {
-    console.log(`reset ${count} orphaned deploying branch(es) to stopped`);
+    console.log(`reset ${count} orphaned branch activity row(s) to idle`);
   }
   pushJob = new PushJob();
   pushJob.startWorker({ connection });
