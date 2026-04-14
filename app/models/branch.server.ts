@@ -113,7 +113,10 @@ export async function updateBranchContainerStatus(
   branchName: string,
   containerStatus: "running" | "stopped"
 ) {
-  return prisma.branch.update({
+  // updateMany is used here (instead of update) so the call silently
+  // no-ops if the row was deleted concurrently — e.g. a delete-deployment
+  // job racing with the post-stop status write in ensureMemoryAvailable.
+  return prisma.branch.updateMany({
     where: { name: branchName },
     data: { containerStatus },
   });
