@@ -21,6 +21,8 @@ export async function findAllBranches(sort: BranchSortField = "updatedAt") {
       handle: true,
       cloneUrl: true,
       dockerComposeDirectory: true,
+      containerStatus: true,
+      activity: true,
       createdAt: true,
       updatedAt: true,
       repository: {
@@ -46,6 +48,8 @@ export async function findBranch(branchName: string) {
       handle: true,
       cloneUrl: true,
       dockerComposeDirectory: true,
+      containerStatus: true,
+      activity: true,
       repository: {
         select: {
           id: true,
@@ -104,5 +108,71 @@ export async function deleteBranch(branchName: string) {
     where: {
       name: branchName,
     },
+  });
+}
+
+export type BranchContainerStatus = "running" | "stopped";
+export type BranchActivity = "idle" | "deploying";
+
+export async function updateBranchContainerStatus(
+  branchName: string,
+  containerStatus: BranchContainerStatus
+) {
+  // updateMany is used here (instead of update) so the call silently
+  // no-ops if the row was deleted concurrently — e.g. a delete-deployment
+  // job racing with the post-stop status write in ensureMemoryAvailable.
+  return prisma.branch.updateMany({
+    where: { name: branchName },
+    data: { containerStatus },
+  });
+}
+
+export async function setBranchActivity(
+  branchName: string,
+  activity: BranchActivity
+) {
+  return prisma.branch.updateMany({
+    where: { name: branchName },
+    data: { activity },
+  });
+}
+
+export async function resetAllBranchesToIdle() {
+  return prisma.branch.updateMany({
+    where: { activity: { not: "idle" } },
+    data: { activity: "idle" },
+  });
+}
+
+export async function findOldestRunningBranches(options?: {
+  exclude?: string[];
+}) {
+  return prisma.branch.findMany({
+    where: {
+      containerStatus: "running",
+      // Never recycle a branch that has work in flight — a redeploy
+      // of a running branch should not be torn down mid-flight.
+      activity: "idle",
+      ...(options?.exclude?.length
+        ? { name: { notIn: options.exclude } }
+        : {}),
+    },
+    select: {
+      name: true,
+      handle: true,
+      cloneUrl: true,
+      dockerComposeDirectory: true,
+      containerStatus: true,
+      activity: true,
+      repository: {
+        select: {
+          id: true,
+          name: true,
+          owner: true,
+          fullName: true,
+        },
+      },
+    },
+    orderBy: { updatedAt: "asc" },
   });
 }

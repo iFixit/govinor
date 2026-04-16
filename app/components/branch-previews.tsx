@@ -1,4 +1,5 @@
 import dayjs from "dayjs";
+import { StatusIndicator } from "~/components/status-indicator";
 import { useHumanReadableDateTime } from "~/helpers/date-helpers";
 import type { LoaderData } from "~/routes/_index";
 import { BranchActions } from "~/routes/repositories.$id.branches._index";
@@ -17,6 +18,10 @@ export function BranchPreviews({
       {branches.map((branch) => {
         const repositoryFullName =
           branch.repository?.fullName ?? "react-commerce";
+        const isDeploying = branch.activity === "deploying";
+        const isReachable =
+          branch.containerStatus === "running" && !isDeploying;
+        const displayStatus = isDeploying ? "deploying" : branch.containerStatus;
         return (
           <li
             key={branch.handle}
@@ -24,15 +29,20 @@ export function BranchPreviews({
           >
             <div className="min-w-0 flex-auto">
               <div className="flex items-center gap-x-3">
+                <StatusIndicator status={displayStatus} />
                 <h2 className="min-w-0 text-sm font-semibold leading-6 text-white">
-                  <a
-                    href={`https://${branch.handle}.${deployDomain}/admin`}
-                    target="_blank"
-                    className="flex gap-x-2"
-                  >
+                  {isReachable ? (
+                    <a
+                      href={`https://${branch.handle}.${deployDomain}/admin`}
+                      target="_blank"
+                      className="flex gap-x-2"
+                    >
+                      <span className="whitespace-nowrap">{branch.name}</span>
+                      <span className="absolute inset-0" />
+                    </a>
+                  ) : (
                     <span className="whitespace-nowrap">{branch.name}</span>
-                    <span className="absolute inset-0" />
-                  </a>
+                  )}
                 </h2>
               </div>
               <div className="mt-3 flex items-center gap-x-2.5 text-xs leading-5 text-gray-400">
@@ -50,13 +60,23 @@ export function BranchPreviews({
               </div>
             </div>
             <div className="flex flex-none items-center gap-x-4">
-              <a
-                href={`https://${branch.handle}.${deployDomain}/admin`}
-                target="_blank"
-                className="hidden rounded-md bg-white/10 px-2.5 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-white/20 sm:block"
-              >
-                Preview <span className="sr-only">, {branch.name}</span>
-              </a>
+              {isReachable ? (
+                <a
+                  href={`https://${branch.handle}.${deployDomain}/admin`}
+                  target="_blank"
+                  className="hidden rounded-md bg-white/10 px-2.5 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-white/20 sm:block"
+                >
+                  Preview <span className="sr-only">, {branch.name}</span>
+                </a>
+              ) : isDeploying ? (
+                <span className="hidden rounded-md bg-blue-500/10 px-2.5 py-1.5 text-sm font-semibold text-blue-400 animate-pulse sm:block">
+                  Deploying…
+                </span>
+              ) : (
+                <span className="hidden rounded-md bg-gray-500/10 px-2.5 py-1.5 text-sm font-semibold text-gray-500 sm:block">
+                  Stopped
+                </span>
+              )}
               <BranchActions branch={branch} />
             </div>
           </li>

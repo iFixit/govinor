@@ -14,8 +14,13 @@ import { isPresent } from "~/helpers/application-helpers";
 import { getRepoDeployPath } from "~/helpers/deployment-helpers";
 import { Logger } from "~/lib/logger";
 import { Shell, SpawnCommand } from "~/lib/shell.server";
-import { Branch } from "../branch.server";
+import {
+  Branch,
+  setBranchActivity,
+  updateBranchContainerStatus,
+} from "../branch.server";
 import { cloneRepoCommand } from "./clone-repo";
+import { ensureMemoryAvailable } from "./ensure-memory.server";
 import { fetchLatestChangesCommand } from "./fetch-latest-changes";
 import { resetLocalBranchCommand } from "./reset-local-branch";
 
@@ -37,10 +42,27 @@ interface DeployOptions extends BaseOptions {
  * @param options Options for the deployment.
  */
 export async function deploy({ logger, branch }: DeployOptions): Promise<void> {
-  if (process.env.NODE_ENV !== "production") {
-    await logger?.info(`[dev] Simulating deploy for "${branch.name}"`);
-    return;
+  await setBranchActivity(branch.name, "deploying");
+  try {
+    await ensureMemoryAvailable({
+      logger,
+      excludeBranches: [branch.name],
+    });
+    if (process.env.NODE_ENV !== "production") {
+      await simulateDeploy({ logger, branch });
+    } else {
+      await runDeploy({ logger, branch });
+    }
+  } finally {
+    // Clear activity regardless of outcome. containerStatus is
+    // owned by runDeploy()/stop() and already reflects reality — a
+    // failed redeploy of a live branch stays "running", a failed
+    // fresh deploy stays "stopped".
+    await setBranchActivity(branch.name, "idle");
   }
+}
+
+async function runDeploy({ logger, branch }: DeployOptions): Promise<void> {
   invariant(branch.repository, "Branch must have a repository to deploy.");
   const info = createInfo(logger);
   const shell = new Shell(logger);
@@ -154,17 +176,55 @@ export async function deploy({ logger, branch }: DeployOptions): Promise<void> {
       rootDirectory: branch.dockerComposeDirectory,
     })
   );
-  const hasDomainRoute = await hasDomainRouteForHandle(branch.handle);
-  if (!hasDomainRoute) {
-    await info("Assigning domain to deployment..");
-    await shell.run(
-      addCaddyRouteCommand({
-        port,
-        branchHandle: branch.handle,
-        rootDirectory: branch.dockerComposeDirectory,
-      })
-    );
+  // Only mark running once the preview route is in place, so the
+  // dashboard invariant holds: containerStatus === "running" ⟺ the
+  // preview is actually reachable. If route assignment fails we tear
+  // the containers back down so we don't leak memory on a branch the
+  // UI can no longer show.
+  try {
+    const hasDomainRoute = await hasDomainRouteForHandle(branch.handle);
+    if (!hasDomainRoute) {
+      await info("Assigning domain to deployment..");
+      await shell.run(
+        addCaddyRouteCommand({
+          port,
+          branchHandle: branch.handle,
+          rootDirectory: branch.dockerComposeDirectory,
+        })
+      );
+    }
+  } catch (error) {
+    await info("Route assignment failed, rolling back containers..");
+    try {
+      await stop({ logger, branch });
+    } catch (rollbackError) {
+      await info(
+        rollbackError instanceof Error
+          ? `Rollback failed: ${rollbackError.message}`
+          : "Rollback failed with unknown error"
+      );
+    }
+    throw error;
   }
+  await updateBranchContainerStatus(branch.name, "running");
+}
+
+async function simulateDeploy({
+  logger,
+  branch,
+}: DeployOptions): Promise<void> {
+  const info = createInfo(logger);
+  await info(`[dev] Simulating deploy for "${branch.name}"..`);
+  await info("[dev] Simulating build..");
+  await sleep(2000);
+  await info("[dev] Simulating container start..");
+  await sleep(1000);
+  await info("[dev] Deploy complete");
+  await updateBranchContainerStatus(branch.name, "running");
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function createInfo(
@@ -238,6 +298,52 @@ export async function destroy({
   }
 }
 
+interface StopOptions extends BaseOptions {
+  branch: Pick<Branch, "name" | "handle" | "dockerComposeDirectory">;
+}
+
+/**
+ * Stop a deployment's containers without destroying files or DB record.
+ * Lighter than destroy — allows fast restart on next deploy.
+ */
+export async function stop({ logger, branch }: StopOptions): Promise<void> {
+  if (process.env.NODE_ENV === "production") {
+    const info = createInfo(logger);
+    const shell = new Shell(logger);
+
+    const hasDomainRoute = await hasDomainRouteForHandle(branch.handle);
+    if (hasDomainRoute) {
+      await info("Removing domain route for stopped branch..");
+      await shell.run(removeCaddyRouteCommand({ branchHandle: branch.handle }));
+    }
+
+    const branchFolderExists = await hasBranchFolder(branch.handle);
+    if (branchFolderExists) {
+      await info(`Stopping containers for "${branch.name}"..`);
+      await shell.run(
+        dockerComposeStopCommand({
+          branchHandle: branch.handle,
+          rootDirectory: branch.dockerComposeDirectory,
+        })
+      );
+      // Release the host port so it can't collide with another deployment
+      // that grabs it while this branch is stopped. The next deploy will
+      // allocate a fresh free port.
+      await removeEnvVariable({
+        name: "HOST_PORT",
+        branchHandle: branch.handle,
+        rootDirectory: branch.dockerComposeDirectory,
+      });
+    }
+  } else {
+    await logger?.info(`[dev] Simulating stop for "${branch.name}"`);
+  }
+  // Own the DB transition so callers (deploy's rollback path,
+  // ensureMemoryAvailable) can't leave the row out of sync with the
+  // side effects we just performed.
+  await updateBranchContainerStatus(branch.name, "stopped");
+}
+
 async function doesDeploymentWithHandleExist(handle: string): Promise<boolean> {
   const handles = await getBranchFolderNames();
   return handles.includes(handle);
@@ -266,7 +372,7 @@ async function getDeploymentPort(
       return undefined;
     }
     return port;
-  } catch (error) {}
+  } catch (error) { }
   return undefined;
 }
 
@@ -284,10 +390,42 @@ async function upsertEnvVariable({
   let result: string | undefined;
   try {
     result = await fs.readFile(envPath, "utf8");
-  } catch (error) {}
+  } catch (error) { }
 
   const env = result ? parse(result) : {};
   env[variable.name] = String(variable.value);
+  await fs.writeFile(envPath, stringify(env), "utf8");
+}
+
+interface RemoveEnvVariableOptions {
+  name: string;
+  branchHandle: string;
+  rootDirectory?: string;
+}
+
+async function removeEnvVariable({
+  name,
+  branchHandle,
+  rootDirectory,
+}: RemoveEnvVariableOptions): Promise<void> {
+  const workingDirectory = getRepoDeployPath({
+    rootDirectory,
+    branchHandle,
+  });
+  const envPath = `${workingDirectory}/.env`;
+
+  let result: string | undefined;
+  try {
+    result = await fs.readFile(envPath, "utf8");
+  } catch (error) {
+    return;
+  }
+
+  const env = parse(result);
+  if (!(name in env)) {
+    return;
+  }
+  delete env[name];
   await fs.writeFile(envPath, stringify(env), "utf8");
 }
 
@@ -459,4 +597,20 @@ async function getBranchFolderName(branchHandle: string) {
 async function hasBranchFolder(branchHandle: string) {
   const name = await getBranchFolderName(branchHandle);
   return name != null;
+}
+
+function dockerComposeStopCommand({
+  branchHandle,
+  rootDirectory,
+}: DockerComposeDownCommandOptions): SpawnCommand {
+  const workingDirectory = getRepoDeployPath({
+    branchHandle,
+    rootDirectory,
+  });
+  return {
+    type: "spawn-command",
+    command: "docker",
+    args: ["compose", "-p", branchHandle, "stop"],
+    workingDirectory,
+  };
 }

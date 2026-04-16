@@ -23,10 +23,7 @@ export class PushJob extends BaseJob<PushJobPayload, PushJobResult> {
     if (branch == null) {
       throw new Error(`Branch "${branchName}" not found`);
     }
-    await deploy({
-      branch,
-      logger,
-    });
+    await deploy({ branch, logger });
     return `Deployed branch "${branchName}"`;
   }
 

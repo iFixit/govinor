@@ -38,3 +38,19 @@ async function getAvailableMemory(): Promise<string> {
   }
   return result.output;
 }
+
+export async function getAvailableMemoryBytes(): Promise<number> {
+  const shell = new Shell();
+  const result = await shell.run({
+    type: "command",
+    command: "free -b | awk '/Mem:/ {print $7}'",
+  });
+  if (result == null) {
+    throw new Error("Failed to get available memory");
+  }
+  const bytes = parseInt(result.output.trim(), 10);
+  if (!Number.isFinite(bytes)) {
+    throw new Error(`Failed to parse available memory: "${result.output}"`);
+  }
+  return bytes;
+}

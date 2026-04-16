@@ -5,6 +5,7 @@ import { BranchPreviews } from "~/components/branch-previews";
 import { DeploymentList } from "~/components/deployment-list";
 import { SortSelector } from "~/components/sort-selector";
 import { StatsSection } from "~/components/stats-section";
+import { useSWRData } from "~/lib/hooks";
 import { BreadcrumbItem } from "~/lib/hooks/use-breadcrumbs";
 import {
   findAllBranches,
@@ -53,7 +54,7 @@ export const handle = {
 
 export default function Index() {
   const { stats, branches, deployDomain, deployments, sort } =
-    useLoaderData<Loader>();
+    useSWRData<Loader>();
 
   return (
     <>
