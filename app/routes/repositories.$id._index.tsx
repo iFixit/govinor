@@ -1,7 +1,7 @@
 import {
   CheckIcon,
   ClipboardIcon,
-  PlusSmallIcon,
+  RocketLaunchIcon,
 } from "@heroicons/react/20/solid";
 import {
   ActionFunction,
@@ -98,23 +98,25 @@ export default function RepositoryPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-8">
-      <header className="py-8 flex justify-between">
+      <header className="py-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold leading-7 text-white sm:truncate sm:text-3xl sm:tracking-tight">
             {repository.fullName}
           </h2>
-          <div className="text-gray-500 font-mono text-sm mt-2 flex items-center space-x-4">
+          <div className="text-gray-500 font-mono text-sm mt-2">
             <span>{branchCount} deployed branches</span>
-            <Link
-              to={newBranchPath(repository)}
-              className="font-bold inline-flex"
-            >
-              <PlusSmallIcon className="h-5 w-5" aria-hidden="true" />
-              <span>Deploy branch</span>
-            </Link>
           </div>
         </div>
-        <div></div>
+        <Link
+          to={newBranchPath(repository)}
+          className="group inline-flex flex-shrink-0 items-center gap-x-2 self-start rounded-md bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-indigo-500/30 transition-all hover:bg-indigo-400 hover:shadow-md hover:shadow-indigo-400/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 sm:self-auto"
+        >
+          <RocketLaunchIcon
+            className="h-5 w-5 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+            aria-hidden="true"
+          />
+          Deploy branch
+        </Link>
       </header>
 
       <main className="">
