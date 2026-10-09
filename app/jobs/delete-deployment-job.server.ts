@@ -1,7 +1,11 @@
 import { Job } from "bullmq";
 import { BaseJob } from "~/lib/jobs.server";
 import { JobProgressLogger } from "~/lib/logger";
-import { deleteBranch, findBranch } from "~/models/branch.server";
+import {
+  deleteBranch,
+  findBranch,
+  setBranchActivity,
+} from "~/models/branch.server";
 import { destroy } from "~/models/commands/deploy.server";
 
 const queueName = "delete_deployment";
@@ -23,10 +27,18 @@ export class DeleteDeploymentJob extends BaseJob<
     const logger = new JobProgressLogger(job);
     const branch = await findBranch(branchName);
     if (branch) {
-      await destroy({
-        branch,
-        logger,
-      });
+      // The memory recycler only stops idle branches. Without this it could
+      // stop the branch mid-delete, racing our `docker compose down`.
+      await setBranchActivity(branchName, "deleting");
+      try {
+        await destroy({
+          branch,
+          logger,
+        });
+      } catch (error) {
+        await setBranchActivity(branchName, "idle");
+        throw error;
+      }
       await deleteBranch(branchName);
       return `Removed deployment for branch "${branchName}"`;
     }

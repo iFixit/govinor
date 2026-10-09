@@ -112,7 +112,7 @@ export async function deleteBranch(branchName: string) {
 }
 
 export type BranchContainerStatus = "running" | "stopped";
-export type BranchActivity = "idle" | "deploying";
+export type BranchActivity = "idle" | "deploying" | "deleting";
 
 export async function updateBranchContainerStatus(
   branchName: string,
