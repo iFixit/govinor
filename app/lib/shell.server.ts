@@ -89,7 +89,11 @@ export class Shell {
         if (code === 0) {
           resolve();
         } else {
-          reject(code);
+          // Reject with an Error, not the bare code: BullMQ records only an
+          // Error's message as the job's failedReason, and callers that check
+          // `instanceof Error` would otherwise log nothing.
+          const commandLine = [command.command, ...(command.args ?? [])].join(" ");
+          reject(new Error(`\`${commandLine}\` exited with code ${code}`));
         }
       });
       commandProcess.on("error", (err) => {
