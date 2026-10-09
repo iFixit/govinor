@@ -16,7 +16,8 @@ import { Logger } from "~/lib/logger";
 import { Shell, SpawnCommand } from "~/lib/shell.server";
 import {
   Branch,
-  setBranchActivity,
+  releaseBranchActivity,
+  waitToClaimBranchActivity,
   updateBranchContainerStatus,
 } from "../branch.server";
 import { cloneRepoCommand } from "./clone-repo";
@@ -42,7 +43,7 @@ interface DeployOptions extends BaseOptions {
  * @param options Options for the deployment.
  */
 export async function deploy({ logger, branch }: DeployOptions): Promise<void> {
-  await setBranchActivity(branch.name, "deploying");
+  await waitToClaimBranchActivity(branch.name, "deploying");
   try {
     await ensureMemoryAvailable({
       logger,
@@ -58,7 +59,7 @@ export async function deploy({ logger, branch }: DeployOptions): Promise<void> {
     // owned by runDeploy()/stop() and already reflects reality — a
     // failed redeploy of a live branch stays "running", a failed
     // fresh deploy stays "stopped".
-    await setBranchActivity(branch.name, "idle");
+    await releaseBranchActivity(branch.name, "deploying");
   }
 }
 

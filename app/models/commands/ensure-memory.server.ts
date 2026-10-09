@@ -1,7 +1,11 @@
 import { DEPLOY_MEMORY_THRESHOLD_BYTES } from "~/../config/env.server";
 import { PROTECTED_BRANCHES } from "~/helpers/branch-helpers";
 import { Logger } from "~/lib/logger";
-import { findOldestRunningBranches } from "~/models/branch.server";
+import {
+  claimBranchActivity,
+  findOldestRunningBranches,
+  releaseBranchActivity,
+} from "~/models/branch.server";
 import { getAvailableMemoryBytes } from "~/models/system.server";
 import { stop } from "./deploy.server";
 
@@ -40,8 +44,19 @@ export async function ensureMemoryAvailable({
       break;
     }
 
+    // The candidate list was read before this loop, so claim each branch
+    // as we reach it. A branch a delete or deploy took in the meantime is
+    // skipped rather than stopped out from under that job.
+    if (!(await claimBranchActivity(candidate.name, "stopping"))) {
+      await logger?.info(`Skipping busy branch "${candidate.name}"..`);
+      continue;
+    }
     await logger?.info(`Stopping branch "${candidate.name}" to free memory..`);
-    await stop({ logger, branch: candidate });
+    try {
+      await stop({ logger, branch: candidate });
+    } finally {
+      await releaseBranchActivity(candidate.name, "stopping");
+    }
 
     availableMemory = await getAvailableMemoryBytes();
     await logger?.info(

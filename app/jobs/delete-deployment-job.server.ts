@@ -4,7 +4,8 @@ import { JobProgressLogger } from "~/lib/logger";
 import {
   deleteBranch,
   findBranch,
-  setBranchActivity,
+  releaseBranchActivity,
+  waitToClaimBranchActivity,
 } from "~/models/branch.server";
 import { destroy } from "~/models/commands/deploy.server";
 
@@ -27,16 +28,16 @@ export class DeleteDeploymentJob extends BaseJob<
     const logger = new JobProgressLogger(job);
     const branch = await findBranch(branchName);
     if (branch) {
-      // The memory recycler only stops idle branches. Without this it could
-      // stop the branch mid-delete, racing our `docker compose down`.
-      await setBranchActivity(branchName, "deleting");
+      // Wait for any deploy of this branch to finish, and keep the memory
+      // recycler away while our `docker compose down` runs.
+      await waitToClaimBranchActivity(branchName, "deleting");
       try {
         await destroy({
           branch,
           logger,
         });
       } catch (error) {
-        await setBranchActivity(branchName, "idle");
+        await releaseBranchActivity(branchName, "deleting");
         throw error;
       }
       await deleteBranch(branchName);

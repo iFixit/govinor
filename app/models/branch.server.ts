@@ -112,7 +112,7 @@ export async function deleteBranch(branchName: string) {
 }
 
 export type BranchContainerStatus = "running" | "stopped";
-export type BranchActivity = "idle" | "deploying" | "deleting";
+export type BranchActivity = "idle" | "deploying" | "deleting" | "stopping";
 
 export async function updateBranchContainerStatus(
   branchName: string,
@@ -127,13 +127,60 @@ export async function updateBranchContainerStatus(
   });
 }
 
-export async function setBranchActivity(
+/**
+ * Moves an idle branch to `activity` and returns true, or returns false when
+ * another job holds it (or the row is gone). It is one UPDATE ... WHERE
+ * activity = 'idle', so two jobs can never both claim the same branch. The
+ * push and delete workers run at the same time, and without this a delete,
+ * a deploy, and the memory recycler could all run `docker compose` against
+ * one branch at once.
+ */
+export async function claimBranchActivity(
   branchName: string,
-  activity: BranchActivity
+  activity: Exclude<BranchActivity, "idle">
+): Promise<boolean> {
+  const { count } = await prisma.branch.updateMany({
+    where: { name: branchName, activity: "idle" },
+    data: { activity },
+  });
+  return count === 1;
+}
+
+/**
+ * Waits for the branch to be idle, then claims it. A delete that arrives
+ * while the same branch is building waits for the build instead of racing
+ * it. Throws if the row disappears or the wait passes `timeoutMs`.
+ */
+export async function waitToClaimBranchActivity(
+  branchName: string,
+  activity: Exclude<BranchActivity, "idle">,
+  timeoutMs = 20 * 60 * 1000
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (!(await claimBranchActivity(branchName, activity))) {
+    if ((await findBranch(branchName)) == null) {
+      throw new Error(`Branch "${branchName}" not found`);
+    }
+    if (Date.now() > deadline) {
+      throw new Error(
+        `Branch "${branchName}" stayed busy for ${timeoutMs / 60000} minutes`
+      );
+    }
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+  }
+}
+
+/**
+ * Sets the branch back to idle, but only if `activity` is still what it is
+ * doing, so one job's cleanup never clears another job's claim.
+ */
+export async function releaseBranchActivity(
+  branchName: string,
+  activity: Exclude<BranchActivity, "idle">
 ) {
   return prisma.branch.updateMany({
-    where: { name: branchName },
-    data: { activity },
+    where: { name: branchName, activity },
+    data: { activity: "idle" },
   });
 }
 
