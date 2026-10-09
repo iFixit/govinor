@@ -182,12 +182,33 @@ async function runDeploy({ logger, branch }: DeployOptions): Promise<void> {
     rootDirectory: branch.dockerComposeDirectory,
   });
   await info("Starting deployment..");
-  await shell.run(
-    dockerComposeUpCommand({
-      branchHandle: branch.handle,
-      rootDirectory: branch.dockerComposeDirectory,
-    })
-  );
+  try {
+    await shell.run(
+      dockerComposeUpCommand({
+        branchHandle: branch.handle,
+        rootDirectory: branch.dockerComposeDirectory,
+      })
+    );
+  } catch (error) {
+    // A fresh deploy can fail after Postgres has started, leaving it running
+    // under a row marked "stopped" that nothing ever picks again. Remove
+    // what started. Only for a branch that wasn't running: on a redeploy a
+    // failed build leaves the old containers serving, and `down` would kill
+    // a working preview.
+    if (branch.containerStatus !== "running") {
+      await info("Deploy failed, removing any containers that started..");
+      try {
+        await shell.run(
+          dockerComposeDownCommand({ branchHandle: branch.handle })
+        );
+      } catch (cleanupError) {
+        // Containers may still be up: mark the row running so the recycler
+        // and a later delete can find them.
+        await updateBranchContainerStatus(branch.name, "running");
+      }
+    }
+    throw error;
+  }
   // Only mark running once the preview route is in place, so the
   // dashboard invariant holds: containerStatus === "running" ⟺ the
   // preview is actually reachable. If route assignment fails we tear
