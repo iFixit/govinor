@@ -85,7 +85,7 @@ export class Shell {
       commandProcess.stderr.on("data", (data) => {
         this.logger?.error(this.convertErrorToMessage(data));
       });
-      commandProcess.on("close", (code) => {
+      commandProcess.on("close", (code, signal) => {
         if (code === 0) {
           resolve();
         } else {
@@ -93,7 +93,12 @@ export class Shell {
           // Error's message as the job's failedReason, and callers that check
           // `instanceof Error` would otherwise log nothing.
           const commandLine = [command.command, ...(command.args ?? [])].join(" ");
-          reject(new Error(`\`${commandLine}\` exited with code ${code}`));
+          // A process killed by a signal (the OOM killer during a build, for
+          // one) closes with a null code, so name the signal instead.
+          const outcome = signal
+            ? `was killed by ${signal}`
+            : `exited with code ${code}`;
+          reject(new Error(`\`${commandLine}\` ${outcome}`));
         }
       });
       commandProcess.on("error", (err) => {
