@@ -264,6 +264,14 @@ export async function destroy({
   }
   const info = createInfo(logger);
   const shell = new Shell(logger);
+  await info("Stopping deployment..");
+  // Let a failed `down` fail the job. Carrying on would delete the folder
+  // and the branch row while containers are still running, and nothing
+  // would ever clean them up. It runs even when the folder is already
+  // gone, because `down -p` finds containers by their project label.
+  await shell.run(dockerComposeDownCommand({ branchHandle: branch.handle }));
+  // The route goes only after `down` succeeds. Removing it first meant a
+  // failed `down` left a row still marked running with no preview link.
   const hasDomainRoute = await hasDomainRouteForHandle(branch.handle);
   if (hasDomainRoute) {
     await info("Removing domain from deployment..");
@@ -273,12 +281,6 @@ export async function destroy({
       })
     );
   }
-  await info("Stopping deployment..");
-  // Let a failed `down` fail the job. Carrying on would delete the folder
-  // and the branch row while containers are still running, and nothing
-  // would ever clean them up. It runs even when the folder is already
-  // gone, because `down -p` finds containers by their project label.
-  await shell.run(dockerComposeDownCommand({ branchHandle: branch.handle }));
   const images = await findBranchImages(branch.handle);
   if (images.length > 0) {
     await shell.run(removeImagesCommand(images));
@@ -304,12 +306,6 @@ export async function stop({ logger, branch }: StopOptions): Promise<void> {
     const info = createInfo(logger);
     const shell = new Shell(logger);
 
-    const hasDomainRoute = await hasDomainRouteForHandle(branch.handle);
-    if (hasDomainRoute) {
-      await info("Removing domain route for stopped branch..");
-      await shell.run(removeCaddyRouteCommand({ branchHandle: branch.handle }));
-    }
-
     // Runs even when the folder is gone: `down -p` finds containers by
     // their project label, and skipping it would leave containers running
     // under a row marked "stopped", which the recycler never picks again.
@@ -319,6 +315,12 @@ export async function stop({ logger, branch }: StopOptions): Promise<void> {
     // stopped branch. The image stays, so the restart reuses its cache.
     await info(`Stopping containers for "${branch.name}"..`);
     await shell.run(dockerComposeDownCommand({ branchHandle: branch.handle }));
+    // Route last, as in destroy(): a failed `down` keeps the route.
+    const hasDomainRoute = await hasDomainRouteForHandle(branch.handle);
+    if (hasDomainRoute) {
+      await info("Removing domain route for stopped branch..");
+      await shell.run(removeCaddyRouteCommand({ branchHandle: branch.handle }));
+    }
     if (await hasBranchFolder(branch.handle)) {
       // Release the host port so it can't collide with another deployment
       // that grabs it while this branch is stopped. The next deploy will
