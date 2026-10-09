@@ -42,11 +42,13 @@ export class DeleteDeploymentJob extends BaseJob<
           branch,
           logger,
         });
+        // Inside the try: if this throws, the claim must be released too,
+        // or every retry and push for the branch waits 20 minutes and fails.
+        await deleteBranch(branchName);
       } catch (error) {
         await releaseBranchActivity(branchName, "deleting");
         throw error;
       }
-      await deleteBranch(branchName);
       return `Removed deployment for branch "${branchName}"`;
     }
     throw new Error(`No deployment found for branch "${branchName}"`);
