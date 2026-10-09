@@ -7,7 +7,10 @@ import {
   releaseBranchActivity,
   waitToClaimBranchActivity,
 } from "~/models/branch.server";
-import { getBranchHandle } from "~/helpers/deployment-helpers";
+import {
+  getBranchHandle,
+  isReservedHandle,
+} from "~/helpers/deployment-helpers";
 import { destroy } from "~/models/commands/deploy.server";
 
 const queueName = "delete_deployment";
@@ -57,10 +60,11 @@ export class DeleteDeploymentJob extends BaseJob<
     // branch each queue one), or an older Govinor dropped the row and left
     // containers behind. destroy() works from the handle alone and every
     // step is a no-op when nothing is there, so clean up whatever is left.
-    await destroy({
-      branch: { name: branchName, handle: getBranchHandle(branchName) },
-      logger,
-    });
+    const handle = getBranchHandle(branchName);
+    if (isReservedHandle(handle)) {
+      return `Branch "${branchName}" maps to a reserved handle; nothing to delete`;
+    }
+    await destroy({ branch: { name: branchName, handle }, logger });
     return `No deployment row for branch "${branchName}"; removed anything left under its handle`;
   }
 

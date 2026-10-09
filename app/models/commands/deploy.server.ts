@@ -11,7 +11,10 @@ import {
   STRAPI_TRANSFER_TOKEN_SALT,
 } from "~/../config/env.server";
 import { isPresent } from "~/helpers/application-helpers";
-import { getRepoDeployPath } from "~/helpers/deployment-helpers";
+import {
+  getRepoDeployPath,
+  isReservedHandle,
+} from "~/helpers/deployment-helpers";
 import { Logger } from "~/lib/logger";
 import { Shell, SpawnCommand } from "~/lib/shell.server";
 import {
@@ -571,14 +574,9 @@ function removeCaddyRouteCommand({
   };
 }
 
-// Govinor's own Redis (and its job queue in the govinor_redis_data volume)
-// runs as Compose project "govinor", named after /home/ubuntu/govinor. A
-// branch whose handle matched would share that project, and `down --volumes`
-// would delete the queue.
-const RESERVED_COMPOSE_PROJECTS = ["govinor"];
-
 function composeProjectName(branchHandle: string): string {
-  if (RESERVED_COMPOSE_PROJECTS.includes(branchHandle)) {
+  // Last line of defense; upsertBranch already refuses these handles.
+  if (isReservedHandle(branchHandle)) {
     throw new Error(
       `Branch handle "${branchHandle}" is Govinor's own Compose project; refusing to run docker compose for it`
     );

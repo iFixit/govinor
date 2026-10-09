@@ -1,5 +1,8 @@
 import { Prisma } from "@prisma/client";
-import { getBranchHandle } from "~/helpers/deployment-helpers";
+import {
+  getBranchHandle,
+  isReservedHandle,
+} from "~/helpers/deployment-helpers";
 import { prisma } from "~/lib/db.server";
 
 export type BranchSortField = "name" | "updatedAt";
@@ -71,6 +74,11 @@ type UpsertBranchInput = {
 
 export async function upsertBranch(input: UpsertBranchInput) {
   const branchHandle = getBranchHandle(input.branchName);
+  if (isReservedHandle(branchHandle)) {
+    throw new Error(
+      `Branch "${input.branchName}" maps to "${branchHandle}", which Govinor uses for its own containers`
+    );
+  }
   return prisma.branch.upsert({
     where: {
       name: input.branchName,

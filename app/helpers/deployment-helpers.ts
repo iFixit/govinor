@@ -53,3 +53,13 @@ export function getBranchHandle(branchName: string) {
       .replace(/-+$/g, ''); // don't leave a trailing dash before the hash join
    return `${truncatedHandle}-${hash}`;
 }
+
+// Govinor's own Redis (and its job queue in the govinor_redis_data volume)
+// runs as Compose project "govinor", named after /home/ubuntu/govinor. A
+// branch whose handle matched would share that project, and `down --volumes`
+// would delete the queue.
+const RESERVED_HANDLES = ['govinor'];
+
+export function isReservedHandle(handle: string): boolean {
+   return RESERVED_HANDLES.includes(handle);
+}
