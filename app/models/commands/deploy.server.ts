@@ -262,19 +262,13 @@ export async function destroy({
       })
     );
   }
+  await info("Stopping deployment..");
+  // Let a failed `down` fail the job. Carrying on would delete the folder
+  // and the branch row while containers are still running, and nothing
+  // would ever clean them up. It runs even when the folder is already
+  // gone, because `down -p` finds containers by their project label.
+  await shell.run(dockerComposeDownCommand({ branchHandle: branch.handle }));
   const branchFolderExists = await hasBranchFolder(branch.handle);
-  if (branchFolderExists) {
-    await info("Stopping deployment..");
-    // Let a failed `down` fail the job. Carrying on would delete the folder
-    // and the branch row while containers are still running, and nothing
-    // would ever clean them up.
-    await shell.run(
-      dockerComposeDownCommand({
-        branchHandle: branch.handle,
-        rootDirectory: branch.dockerComposeDirectory,
-      })
-    );
-  }
   if (branchFolderExists) {
     await info("Destroying deployment assets..");
     await shell.run(removeDeploymentFolder({ branchHandle: branch.handle }));
@@ -534,26 +528,22 @@ function removeCaddyRouteCommand({
 
 interface DockerComposeDownCommandOptions {
   branchHandle: string;
-  rootDirectory?: string;
 }
 
+/**
+ * With `-p`, Compose v2 rebuilds the project from container labels and never
+ * reads the compose file, so this works from any directory, including after
+ * the branch folder is gone. --volumes removes the branch's database volume,
+ * which a box-wide `docker system prune` used to clean up.
+ */
 function dockerComposeDownCommand({
   branchHandle,
-  rootDirectory,
 }: DockerComposeDownCommandOptions): SpawnCommand {
-  const workingDirectory = getRepoDeployPath({
-    branchHandle,
-    rootDirectory,
-  });
   return {
     type: "spawn-command",
     command: "docker",
-    // --volumes and --rmi local remove this branch's database volume and
-    // Strapi image, which a box-wide `docker system prune` used to clean
-    // up. That prune ran during other jobs' work, removing containers out
-    // from under a concurrent `down`, and threw away the build cache.
-    args: ["compose", "-p", branchHandle, "down", "--volumes", "--rmi", "local"],
-    workingDirectory,
+    args: ["compose", "-p", branchHandle, "down", "--volumes"],
+    workingDirectory: DEPLOYMENTS_DIRECTORY,
   };
 }
 
@@ -594,7 +584,7 @@ async function hasBranchFolder(branchHandle: string) {
 function dockerComposeStopCommand({
   branchHandle,
   rootDirectory,
-}: DockerComposeDownCommandOptions): SpawnCommand {
+}: DockerComposeUpCommandOptions): SpawnCommand {
   const workingDirectory = getRepoDeployPath({
     branchHandle,
     rootDirectory,
