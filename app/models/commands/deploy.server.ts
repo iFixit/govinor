@@ -252,7 +252,7 @@ function createInfo(
 }
 
 interface DestroyOptions extends BaseOptions {
-  branch: Branch;
+  branch: Pick<Branch, "name" | "handle">;
 }
 
 /**
