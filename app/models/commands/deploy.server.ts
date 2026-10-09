@@ -66,16 +66,6 @@ async function runDeploy({ logger, branch }: DeployOptions): Promise<void> {
   invariant(branch.repository, "Branch must have a repository to deploy.");
   const info = createInfo(logger);
   const shell = new Shell(logger);
-  try {
-    await shell.run(dockerSystemPruneCommand());
-  } catch (error) {
-    // If pruning fails we don't want to stop the deployment process.
-    if (error instanceof Error) {
-      await info(error.message);
-    } else {
-      await info("Pruning failed with unknown error. Continuing..");
-    }
-  }
   const deploymentExists = await doesDeploymentWithHandleExist(branch.handle);
   if (deploymentExists) {
     await info(
@@ -277,17 +267,6 @@ export async function destroy({
       })
     );
   }
-  await info("Prune unused docker stuff..");
-  try {
-    await shell.run(dockerSystemPruneCommand());
-  } catch (error) {
-    // If pruning fails we don't want to stop the deployment process.
-    if (error instanceof Error) {
-      await info(error.message);
-    } else {
-      await info("Pruning failed with unknown error. Continuing..");
-    }
-  }
   if (branchFolderExists) {
     await info("Destroying deployment assets..");
     await shell.run(removeDeploymentFolder({ branchHandle: branch.handle }));
@@ -434,14 +413,6 @@ async function hasDomainRouteForHandle(handle: string): Promise<boolean> {
   return false;
 }
 
-function dockerSystemPruneCommand(): SpawnCommand {
-  return {
-    type: "spawn-command",
-    command: "docker",
-    args: ["system", "prune", "-a", "--volumes", "-f"],
-  };
-}
-
 async function checkEnvFileExists(
   branchHandle: string,
   rootDirectory?: string
@@ -556,7 +527,11 @@ function dockerComposeDownCommand({
   return {
     type: "spawn-command",
     command: "docker",
-    args: ["compose", "-p", branchHandle, "down"],
+    // --volumes and --rmi local remove this branch's database volume and
+    // Strapi image, which a box-wide `docker system prune` used to clean
+    // up. That prune ran during other jobs' work, removing containers out
+    // from under a concurrent `down`, and threw away the build cache.
+    args: ["compose", "-p", branchHandle, "down", "--volumes", "--rmi", "local"],
     workingDirectory,
   };
 }
