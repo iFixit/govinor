@@ -66,6 +66,14 @@ async function runDeploy({ logger, branch }: DeployOptions): Promise<void> {
   invariant(branch.repository, "Branch must have a repository to deploy.");
   const info = createInfo(logger);
   const shell = new Shell(logger);
+  try {
+    await shell.run(dockerDanglingImagePruneCommand());
+  } catch (error) {
+    // Runs before the build so a full disk can still free space. Disk
+    // cleanup only. Another job may be pruning at the same moment
+    // ("a prune operation is already running"), so never fail the deploy.
+    await info("Dangling image cleanup failed. Continuing..");
+  }
   const deploymentExists = await doesDeploymentWithHandleExist(branch.handle);
   if (deploymentExists) {
     await info(
@@ -411,6 +419,19 @@ async function hasDomainRouteForHandle(handle: string): Promise<boolean> {
     return json?.["@id"] === handle;
   }
   return false;
+}
+
+/**
+ * Removes images with no tag left, which each rebuild leaves behind when it
+ * retags `<handle>_strapi`. Unlike `docker system prune -a`, it never touches
+ * containers, volumes, or the layers tagged images still use as build cache.
+ */
+function dockerDanglingImagePruneCommand(): SpawnCommand {
+  return {
+    type: "spawn-command",
+    command: "docker",
+    args: ["image", "prune", "-f"],
+  };
 }
 
 async function checkEnvFileExists(
