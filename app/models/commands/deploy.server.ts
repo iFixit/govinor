@@ -309,14 +309,16 @@ export async function stop({ logger, branch }: StopOptions): Promise<void> {
       await shell.run(removeCaddyRouteCommand({ branchHandle: branch.handle }));
     }
 
-    const branchFolderExists = await hasBranchFolder(branch.handle);
-    if (branchFolderExists) {
-      await info(`Stopping containers for "${branch.name}"..`);
-      // `down --volumes`, not `stop`: a stopped branch keeps no containers
-      // and no database volume (about 164 MB each on 2026-10-09), and the
-      // next deploy reseeds it. The box-wide prune used to do this to every
-      // stopped branch. The image stays, so the restart reuses its cache.
-      await shell.run(dockerComposeDownCommand({ branchHandle: branch.handle }));
+    // Runs even when the folder is gone: `down -p` finds containers by
+    // their project label, and skipping it would leave containers running
+    // under a row marked "stopped", which the recycler never picks again.
+    // `down --volumes`, not `stop`: a stopped branch keeps no containers
+    // and no database volume (about 164 MB each on 2026-10-09), and the
+    // next deploy reseeds it. The box-wide prune used to do this to every
+    // stopped branch. The image stays, so the restart reuses its cache.
+    await info(`Stopping containers for "${branch.name}"..`);
+    await shell.run(dockerComposeDownCommand({ branchHandle: branch.handle }));
+    if (await hasBranchFolder(branch.handle)) {
       // Release the host port so it can't collide with another deployment
       // that grabs it while this branch is stopped. The next deploy will
       // allocate a fresh free port.
