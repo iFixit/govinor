@@ -547,7 +547,7 @@ function dockerComposeUpCommand({
   return {
     type: "spawn-command",
     command: "docker",
-    args: ["compose", "-p", branchHandle, "up", "--no-deps", "--build", "-d"],
+    args: ["compose", "-p", composeProjectName(branchHandle), "up", "--no-deps", "--build", "-d"],
     workingDirectory,
   };
 }
@@ -566,6 +566,21 @@ function removeCaddyRouteCommand({
   };
 }
 
+// Govinor's own Redis (and its job queue in the govinor_redis_data volume)
+// runs as Compose project "govinor", named after /home/ubuntu/govinor. A
+// branch whose handle matched would share that project, and `down --volumes`
+// would delete the queue.
+const RESERVED_COMPOSE_PROJECTS = ["govinor"];
+
+function composeProjectName(branchHandle: string): string {
+  if (RESERVED_COMPOSE_PROJECTS.includes(branchHandle)) {
+    throw new Error(
+      `Branch handle "${branchHandle}" is Govinor's own Compose project; refusing to run docker compose for it`
+    );
+  }
+  return branchHandle;
+}
+
 interface DockerComposeDownCommandOptions {
   branchHandle: string;
 }
@@ -582,7 +597,7 @@ function dockerComposeDownCommand({
   return {
     type: "spawn-command",
     command: "docker",
-    args: ["compose", "-p", branchHandle, "down", "--volumes"],
+    args: ["compose", "-p", composeProjectName(branchHandle), "down", "--volumes"],
     workingDirectory: DEPLOYMENTS_DIRECTORY,
   };
 }
