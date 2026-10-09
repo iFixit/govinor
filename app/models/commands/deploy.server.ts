@@ -268,6 +268,7 @@ export async function destroy({
   // would ever clean them up. It runs even when the folder is already
   // gone, because `down -p` finds containers by their project label.
   await shell.run(dockerComposeDownCommand({ branchHandle: branch.handle }));
+  await shell.run(removeBranchImagesCommand({ branchHandle: branch.handle }));
   const branchFolderExists = await hasBranchFolder(branch.handle);
   if (branchFolderExists) {
     await info("Destroying deployment assets..");
@@ -544,6 +545,23 @@ function dockerComposeDownCommand({
     command: "docker",
     args: ["compose", "-p", branchHandle, "down", "--volumes"],
     workingDirectory: DEPLOYMENTS_DIRECTORY,
+  };
+}
+
+/**
+ * Removes the images Compose built for this branch (`<handle>_strapi`). They
+ * stay tagged after `down`, so `docker image prune` never removes them.
+ * Matching on the project prefix keeps this independent of service names,
+ * and never touches pulled images such as postgres:17. The handle is a DNS
+ * label ([a-z0-9-]), so it is safe in shell syntax.
+ */
+function removeBranchImagesCommand({
+  branchHandle,
+}: DockerComposeDownCommandOptions): SpawnCommand {
+  return {
+    type: "spawn-command",
+    command: `docker images -q --filter "reference=${branchHandle}_*" | xargs -r docker image rm`,
+    useShellSyntax: true,
   };
 }
 
