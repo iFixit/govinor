@@ -281,8 +281,9 @@ interface StopOptions extends BaseOptions {
 }
 
 /**
- * Stop a deployment's containers without destroying files or DB record.
- * Lighter than destroy — allows fast restart on next deploy.
+ * Remove a deployment's containers and database volume, keeping its files,
+ * image, and DB record. Lighter than destroy — allows fast restart on next
+ * deploy.
  */
 export async function stop({ logger, branch }: StopOptions): Promise<void> {
   if (process.env.NODE_ENV === "production") {
@@ -298,12 +299,11 @@ export async function stop({ logger, branch }: StopOptions): Promise<void> {
     const branchFolderExists = await hasBranchFolder(branch.handle);
     if (branchFolderExists) {
       await info(`Stopping containers for "${branch.name}"..`);
-      await shell.run(
-        dockerComposeStopCommand({
-          branchHandle: branch.handle,
-          rootDirectory: branch.dockerComposeDirectory,
-        })
-      );
+      // `down --volumes`, not `stop`: a stopped branch keeps no containers
+      // and no database volume (about 164 MB each on 2026-10-09), and the
+      // next deploy reseeds it. The box-wide prune used to do this to every
+      // stopped branch. The image stays, so the restart reuses its cache.
+      await shell.run(dockerComposeDownCommand({ branchHandle: branch.handle }));
       // Release the host port so it can't collide with another deployment
       // that grabs it while this branch is stopped. The next deploy will
       // allocate a fresh free port.
@@ -599,18 +599,3 @@ async function hasBranchFolder(branchHandle: string) {
   return name != null;
 }
 
-function dockerComposeStopCommand({
-  branchHandle,
-  rootDirectory,
-}: DockerComposeUpCommandOptions): SpawnCommand {
-  const workingDirectory = getRepoDeployPath({
-    branchHandle,
-    rootDirectory,
-  });
-  return {
-    type: "spawn-command",
-    command: "docker",
-    args: ["compose", "-p", branchHandle, "stop"],
-    workingDirectory,
-  };
-}
