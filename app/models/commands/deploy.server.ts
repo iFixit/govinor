@@ -61,7 +61,7 @@ export async function deploy({ logger, branch }: DeployOptions): Promise<void> {
     // Clear activity regardless of outcome. containerStatus is
     // owned by runDeploy()/stop() and already reflects reality — a
     // failed redeploy of a live branch stays "running", a failed
-    // fresh deploy stays "stopped".
+    // fresh deploy stays "stopped" unless its cleanup `down` failed too.
     await releaseBranchActivity(branch.name, "deploying");
   }
 }
@@ -190,8 +190,10 @@ async function runDeploy({ logger, branch }: DeployOptions): Promise<void> {
       })
     );
   } catch (error) {
-    // A fresh deploy can fail after Postgres has started, leaving it running
-    // under a row marked "stopped" that nothing ever picks again. Remove
+    // A fresh deploy whose containers fail to start (a port conflict, say)
+    // can leave Postgres running under a row marked "stopped" that nothing
+    // ever picks again. A failed build leaves nothing: Compose builds
+    // images before it creates any container. Remove
     // what started. Only for a branch that wasn't running: on a redeploy a
     // failed build leaves the old containers serving, and `down` would kill
     // a working preview.
@@ -202,9 +204,20 @@ async function runDeploy({ logger, branch }: DeployOptions): Promise<void> {
           dockerComposeDownCommand({ branchHandle: branch.handle })
         );
       } catch (cleanupError) {
+        await info(
+          cleanupError instanceof Error
+            ? `Cleanup failed: ${cleanupError.message}`
+            : "Cleanup failed with unknown error"
+        );
         // Containers may still be up: mark the row running so the recycler
-        // and a later delete can find them.
-        await updateBranchContainerStatus(branch.name, "running");
+        // and a later delete can find them, even though it has no route.
+        // Findable matters more than the running-means-reachable rule here.
+        try {
+          await updateBranchContainerStatus(branch.name, "running");
+        } catch (statusError) {
+          // Keep the original deploy error as the job's failure reason.
+          await info("Could not mark the branch running after cleanup failed");
+        }
       }
     }
     throw error;
