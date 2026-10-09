@@ -267,19 +267,15 @@ export async function destroy({
   const branchFolderExists = await hasBranchFolder(branch.handle);
   if (branchFolderExists) {
     await info("Stopping deployment..");
-    try {
-      await shell.run(
-        dockerComposeDownCommand({
-          branchHandle: branch.handle,
-          rootDirectory: branch.dockerComposeDirectory,
-        })
-      );
-    } catch (error) {
-      await info("Docker compose down failed..");
-      if (error instanceof Error) {
-        await info(`Reason: ${error.message}`);
-      }
-    }
+    // Let a failed `down` fail the job. Carrying on would delete the folder
+    // and the branch row while containers are still running, and nothing
+    // would ever clean them up.
+    await shell.run(
+      dockerComposeDownCommand({
+        branchHandle: branch.handle,
+        rootDirectory: branch.dockerComposeDirectory,
+      })
+    );
   }
   await info("Prune unused docker stuff..");
   try {
