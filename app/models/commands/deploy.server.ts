@@ -212,6 +212,10 @@ async function runDeploy({ logger, branch }: DeployOptions): Promise<void> {
           ? `Rollback failed: ${rollbackError.message}`
           : "Rollback failed with unknown error"
       );
+      // The containers may still be up. Mark the row running so the
+      // recycler and a later delete can still find them; left as
+      // "stopped", nothing would ever pick them again.
+      await updateBranchContainerStatus(branch.name, "running");
     }
     throw error;
   }
