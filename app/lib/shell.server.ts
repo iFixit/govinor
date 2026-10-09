@@ -92,9 +92,11 @@ export class Shell {
           // Reject with an Error, not the bare code: BullMQ records only an
           // Error's message as the job's failedReason, and callers that check
           // `instanceof Error` would otherwise log nothing.
-          const commandLine = [command.command, ...(command.args ?? [])].join(" ");
-          // A process killed by a signal (the OOM killer during a build, for
-          // one) closes with a null code, so name the signal instead.
+          const commandLine = [command.command, ...(command.args ?? [])].join(
+            " "
+          );
+          // A process killed by a signal closes with a null code, so name
+          // the signal instead.
           const outcome = signal
             ? `was killed by ${signal}`
             : `exited with code ${code}`;
