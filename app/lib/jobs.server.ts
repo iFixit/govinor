@@ -1,5 +1,6 @@
 import {
   Job,
+  JobsOptions,
   Queue,
   QueueOptions,
   Worker,
@@ -17,6 +18,8 @@ type ReturnTypeOf<ConcreteJob> = ConcreteJob extends BaseJob<any, infer T>
 
 export abstract class BaseJob<PayloadType = any, ReturnType = any> {
   abstract readonly queueName: string;
+  /** Options for every job this class adds, such as retry attempts. */
+  protected readonly jobOptions?: JobsOptions;
   private _queue: Queue<PayloadType, ReturnType> | undefined;
   private _scheduler: QueueScheduler | undefined;
 
@@ -37,7 +40,7 @@ export abstract class BaseJob<PayloadType = any, ReturnType = any> {
   }
 
   performLater(payload: PayloadType): Promise<Job<PayloadType, ReturnType>> {
-    return this.queue.add(this.getJobName(payload), payload);
+    return this.queue.add(this.getJobName(payload), payload, this.jobOptions);
   }
 
   static performLater<T extends BaseJob<PayloadOf<T>, ReturnTypeOf<T>>>(

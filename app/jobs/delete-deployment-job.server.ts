@@ -22,6 +22,12 @@ export class DeleteDeploymentJob extends BaseJob<
   DeleteDeploymentResult
 > {
   readonly queueName = queueName;
+  // A failed delete keeps the folder and row, so trying again is safe.
+  // Retries come 1, then 2 minutes later.
+  protected readonly jobOptions = {
+    attempts: 3,
+    backoff: { type: "exponential", delay: 60 * 1000 },
+  };
 
   protected async perform(job: Job<DeleteDeploymentPayload>) {
     const branchName = job.data.branch;
