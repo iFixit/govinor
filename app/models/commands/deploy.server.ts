@@ -278,7 +278,10 @@ export async function destroy({
   // would ever clean them up. It runs even when the folder is already
   // gone, because `down -p` finds containers by their project label.
   await shell.run(dockerComposeDownCommand({ branchHandle: branch.handle }));
-  await shell.run(removeBranchImagesCommand({ branchHandle: branch.handle }));
+  const images = await findBranchImages(branch.handle);
+  if (images.length > 0) {
+    await shell.run(removeImagesCommand(images));
+  }
   const branchFolderExists = await hasBranchFolder(branch.handle);
   if (branchFolderExists) {
     await info("Destroying deployment assets..");
@@ -580,19 +583,31 @@ function dockerComposeDownCommand({
 }
 
 /**
- * Removes the images Compose built for this branch (`<handle>_strapi`). They
- * stay tagged after `down`, so `docker image prune` never removes them.
- * Matching on the project prefix keeps this independent of service names,
- * and never touches pulled images such as postgres:17. The handle is a DNS
- * label ([a-z0-9-]), so it is safe in shell syntax.
+ * The images Compose built for this branch (`<handle>_strapi`), by name.
+ * They stay tagged after `down`, so `docker image prune` never removes them.
+ * Matching on the project prefix covers whatever services the compose file
+ * builds and never matches pulled images such as postgres:17. Handles never
+ * contain `_`, so `<handle>_*` can't match another branch. The handle is a
+ * DNS label ([a-z0-9-]), so it is safe in the shell string.
  */
-function removeBranchImagesCommand({
-  branchHandle,
-}: DockerComposeDownCommandOptions): SpawnCommand {
+async function findBranchImages(branchHandle: string): Promise<string[]> {
+  const result = await new Shell().run({
+    type: "command",
+    command: `docker images --filter "reference=${branchHandle}_*" --format "{{.Repository}}:{{.Tag}}"`,
+  });
+  return (result?.output ?? "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+}
+
+// By name, not ID: `docker image rm <id>` refuses an ID tagged in more
+// than one repository.
+function removeImagesCommand(images: string[]): SpawnCommand {
   return {
     type: "spawn-command",
-    command: `docker images -q --filter "reference=${branchHandle}_*" | xargs -r docker image rm`,
-    useShellSyntax: true,
+    command: "docker",
+    args: ["image", "rm", ...images],
   };
 }
 
