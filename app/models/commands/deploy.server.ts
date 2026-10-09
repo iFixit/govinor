@@ -66,13 +66,23 @@ async function runDeploy({ logger, branch }: DeployOptions): Promise<void> {
   invariant(branch.repository, "Branch must have a repository to deploy.");
   const info = createInfo(logger);
   const shell = new Shell(logger);
-  try {
-    await shell.run(dockerDanglingImagePruneCommand());
-  } catch (error) {
-    // Runs before the build so a full disk can still free space. Disk
-    // cleanup only. Another job may be pruning at the same moment
-    // ("a prune operation is already running"), so never fail the deploy.
-    await info("Dangling image cleanup failed. Continuing..");
+  // Disk cleanup before the build, so a full disk can still free space.
+  // Only push jobs prune, one at a time, and neither command touches a
+  // container with a compose label, so this can't race a `docker compose
+  // down`. A failure here is not worth failing the deploy over.
+  for (const command of [
+    dockerBuildContainerPruneCommand(),
+    dockerDanglingImagePruneCommand(),
+  ]) {
+    try {
+      await shell.run(command);
+    } catch (error) {
+      await info(
+        error instanceof Error
+          ? `Cleanup failed: ${error.message}. Continuing..`
+          : "Cleanup failed. Continuing.."
+      );
+    }
   }
   const deploymentExists = await doesDeploymentWithHandleExist(branch.handle);
   if (deploymentExists) {
@@ -414,6 +424,27 @@ async function hasDomainRouteForHandle(handle: string): Promise<boolean> {
     return json?.["@id"] === handle;
   }
   return false;
+}
+
+/**
+ * Removes the stopped intermediate containers the legacy builder leaves
+ * behind. Compose v2.2.2 doesn't pass `Remove` to the build (v2.2.3 does),
+ * so each build step that runs leaves one, holding its layer. They have no
+ * compose label, which is how this tells them apart from a branch's own
+ * containers.
+ */
+function dockerBuildContainerPruneCommand(): SpawnCommand {
+  return {
+    type: "spawn-command",
+    command: "docker",
+    args: [
+      "container",
+      "prune",
+      "-f",
+      "--filter",
+      "label!=com.docker.compose.project",
+    ],
+  };
 }
 
 /**
