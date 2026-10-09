@@ -23,7 +23,8 @@ export class DeleteDeploymentJob extends BaseJob<
 > {
   readonly queueName = queueName;
   // A failed delete keeps the folder and row, so trying again is safe.
-  // Retries come 1, then 2 minutes later.
+  // BullMQ's exponential backoff is (2^attemptsMade - 1) * delay, counted
+  // after the failure, so retries come 1, then 3 minutes after a failure.
   protected readonly jobOptions = {
     attempts: 3,
     backoff: { type: "exponential", delay: 60 * 1000 },
@@ -51,7 +52,9 @@ export class DeleteDeploymentJob extends BaseJob<
       }
       return `Removed deployment for branch "${branchName}"`;
     }
-    throw new Error(`No deployment found for branch "${branchName}"`);
+    // Nothing to do, not a failure: closing a PR and deleting its branch
+    // each queue a delete, and the second one finds the row already gone.
+    return `No deployment found for branch "${branchName}"`;
   }
 
   protected getJobName(payload: DeleteDeploymentPayload): string {
