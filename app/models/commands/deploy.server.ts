@@ -204,6 +204,11 @@ async function runDeploy({ logger, branch }: DeployOptions): Promise<void> {
     }
   } catch (error) {
     await info("Route assignment failed, rolling back containers..");
+    // The containers are up, so the row says so until stop() has actually
+    // removed them. stop() marks it stopped right after `down` succeeds,
+    // so a failed `down` leaves it running, where the recycler and a later
+    // delete can still find it.
+    await updateBranchContainerStatus(branch.name, "running");
     try {
       await stop({ logger, branch });
     } catch (rollbackError) {
@@ -212,10 +217,6 @@ async function runDeploy({ logger, branch }: DeployOptions): Promise<void> {
           ? `Rollback failed: ${rollbackError.message}`
           : "Rollback failed with unknown error"
       );
-      // The containers may still be up. Mark the row running so the
-      // recycler and a later delete can still find them; left as
-      // "stopped", nothing would ever pick them again.
-      await updateBranchContainerStatus(branch.name, "running");
     }
     throw error;
   }
@@ -319,6 +320,9 @@ export async function stop({ logger, branch }: StopOptions): Promise<void> {
     // stopped branch. The image stays, so the restart reuses its cache.
     await info(`Stopping containers for "${branch.name}"..`);
     await shell.run(dockerComposeDownCommand({ branchHandle: branch.handle }));
+    // The containers are gone, so record it now: if a later step throws,
+    // the row must not still claim a running preview.
+    await updateBranchContainerStatus(branch.name, "stopped");
     // Route last, as in destroy(): a failed `down` keeps the route.
     const hasDomainRoute = await hasDomainRouteForHandle(branch.handle);
     if (hasDomainRoute) {
@@ -337,11 +341,8 @@ export async function stop({ logger, branch }: StopOptions): Promise<void> {
     }
   } else {
     await logger?.info(`[dev] Simulating stop for "${branch.name}"`);
+    await updateBranchContainerStatus(branch.name, "stopped");
   }
-  // Own the DB transition so callers (deploy's rollback path,
-  // ensureMemoryAvailable) can't leave the row out of sync with the
-  // side effects we just performed.
-  await updateBranchContainerStatus(branch.name, "stopped");
 }
 
 async function doesDeploymentWithHandleExist(handle: string): Promise<boolean> {
