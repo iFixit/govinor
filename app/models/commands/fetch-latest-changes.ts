@@ -3,14 +3,14 @@ import { getGitCommandEnv } from "~/helpers/repository-helpers";
 import { SpawnCommand } from "~/lib/shell.server";
 
 interface FetchLatestChangesCommandOptions {
-  branchName: string;
+  branchHandle: string;
   repositoryId: string;
 }
 
 export function fetchLatestChangesCommand(
   options: FetchLatestChangesCommandOptions
 ): SpawnCommand {
-  const workingDirectory = getRepoPath(options.branchName);
+  const workingDirectory = getRepoPath(options.branchHandle);
 
   return {
     type: "spawn-command",

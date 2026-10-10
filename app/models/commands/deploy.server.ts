@@ -95,13 +95,14 @@ async function runDeploy({ logger, branch }: DeployOptions): Promise<void> {
     );
     await shell.run(
       fetchLatestChangesCommand({
-        branchName: branch.name,
+        branchHandle: branch.handle,
         repositoryId: branch.repository.id,
       })
     );
     await shell.run(
       resetLocalBranchCommand({
         branchName: branch.name,
+        branchHandle: branch.handle,
         repositoryId: branch.repository.id,
       })
     );
