@@ -4,13 +4,14 @@ import { SpawnCommand } from "~/lib/shell.server";
 
 interface ResetLocalBranchCommandOptions {
   branchName: string;
+  branchHandle: string;
   repositoryId: string;
 }
 
 export function resetLocalBranchCommand(
   options: ResetLocalBranchCommandOptions
 ): SpawnCommand {
-  const repoDirectory = getRepoPath(options.branchName);
+  const repoDirectory = getRepoPath(options.branchHandle);
 
   return {
     type: "spawn-command",
