@@ -11,12 +11,16 @@ import {
   STRAPI_TRANSFER_TOKEN_SALT,
 } from "~/../config/env.server";
 import { isPresent } from "~/helpers/application-helpers";
-import { getRepoDeployPath } from "~/helpers/deployment-helpers";
+import {
+  getRepoDeployPath,
+  isReservedHandle,
+} from "~/helpers/deployment-helpers";
 import { Logger } from "~/lib/logger";
 import { Shell, SpawnCommand } from "~/lib/shell.server";
 import {
   Branch,
-  setBranchActivity,
+  releaseBranchActivity,
+  waitToClaimBranchActivity,
   updateBranchContainerStatus,
 } from "../branch.server";
 import { cloneRepoCommand } from "./clone-repo";
@@ -42,7 +46,7 @@ interface DeployOptions extends BaseOptions {
  * @param options Options for the deployment.
  */
 export async function deploy({ logger, branch }: DeployOptions): Promise<void> {
-  await setBranchActivity(branch.name, "deploying");
+  await waitToClaimBranchActivity(branch.name, "deploying");
   try {
     await ensureMemoryAvailable({
       logger,
@@ -57,8 +61,8 @@ export async function deploy({ logger, branch }: DeployOptions): Promise<void> {
     // Clear activity regardless of outcome. containerStatus is
     // owned by runDeploy()/stop() and already reflects reality — a
     // failed redeploy of a live branch stays "running", a failed
-    // fresh deploy stays "stopped".
-    await setBranchActivity(branch.name, "idle");
+    // fresh deploy stays "stopped" unless its cleanup `down` failed too.
+    await releaseBranchActivity(branch.name, "deploying");
   }
 }
 
@@ -66,14 +70,22 @@ async function runDeploy({ logger, branch }: DeployOptions): Promise<void> {
   invariant(branch.repository, "Branch must have a repository to deploy.");
   const info = createInfo(logger);
   const shell = new Shell(logger);
-  try {
-    await shell.run(dockerSystemPruneCommand());
-  } catch (error) {
-    // If pruning fails we don't want to stop the deployment process.
-    if (error instanceof Error) {
-      await info(error.message);
-    } else {
-      await info("Pruning failed with unknown error. Continuing..");
+  // Disk cleanup before the build, so a full disk can still free space.
+  // Only push jobs prune, one at a time, and neither command touches a
+  // container with a compose label, so this can't race a `docker compose
+  // down`. A failure here is not worth failing the deploy over.
+  for (const command of [
+    dockerBuildContainerPruneCommand(),
+    dockerDanglingImagePruneCommand(),
+  ]) {
+    try {
+      await shell.run(command);
+    } catch (error) {
+      await info(
+        error instanceof Error
+          ? `Cleanup failed: ${error.message}. Continuing..`
+          : "Cleanup failed. Continuing.."
+      );
     }
   }
   const deploymentExists = await doesDeploymentWithHandleExist(branch.handle);
@@ -171,12 +183,46 @@ async function runDeploy({ logger, branch }: DeployOptions): Promise<void> {
     rootDirectory: branch.dockerComposeDirectory,
   });
   await info("Starting deployment..");
-  await shell.run(
-    dockerComposeUpCommand({
-      branchHandle: branch.handle,
-      rootDirectory: branch.dockerComposeDirectory,
-    })
-  );
+  try {
+    await shell.run(
+      dockerComposeUpCommand({
+        branchHandle: branch.handle,
+        rootDirectory: branch.dockerComposeDirectory,
+      })
+    );
+  } catch (error) {
+    // A fresh deploy whose containers fail to start (a port conflict, say)
+    // can leave Postgres running under a row marked "stopped" that nothing
+    // ever picks again. A failed build leaves nothing: Compose builds
+    // images before it creates any container. Remove
+    // what started. Only for a branch that wasn't running: on a redeploy a
+    // failed build leaves the old containers serving, and `down` would kill
+    // a working preview.
+    if (branch.containerStatus !== "running") {
+      await info("Deploy failed, removing any containers that started..");
+      try {
+        await shell.run(
+          dockerComposeDownCommand({ branchHandle: branch.handle })
+        );
+      } catch (cleanupError) {
+        await info(
+          cleanupError instanceof Error
+            ? `Cleanup failed: ${cleanupError.message}`
+            : "Cleanup failed with unknown error"
+        );
+        // Containers may still be up: mark the row running so the recycler
+        // and a later delete can find them, even though it has no route.
+        // Findable matters more than the running-means-reachable rule here.
+        try {
+          await updateBranchContainerStatus(branch.name, "running");
+        } catch (statusError) {
+          // Keep the original deploy error as the job's failure reason.
+          await info("Could not mark the branch running after cleanup failed");
+        }
+      }
+    }
+    throw error;
+  }
   // Only mark running once the preview route is in place, so the
   // dashboard invariant holds: containerStatus === "running" ⟺ the
   // preview is actually reachable. If route assignment fails we tear
@@ -196,6 +242,11 @@ async function runDeploy({ logger, branch }: DeployOptions): Promise<void> {
     }
   } catch (error) {
     await info("Route assignment failed, rolling back containers..");
+    // The containers are up, so the row says so until stop() has actually
+    // removed them. stop() marks it stopped right after `down` succeeds,
+    // so a failed `down` leaves it running, where the recycler and a later
+    // delete can still find it.
+    await updateBranchContainerStatus(branch.name, "running");
     try {
       await stop({ logger, branch });
     } catch (rollbackError) {
@@ -239,7 +290,7 @@ function createInfo(
 }
 
 interface DestroyOptions extends BaseOptions {
-  branch: Branch;
+  branch: Pick<Branch, "name" | "handle">;
 }
 
 /**
@@ -256,6 +307,14 @@ export async function destroy({
   }
   const info = createInfo(logger);
   const shell = new Shell(logger);
+  await info("Stopping deployment..");
+  // Let a failed `down` fail the job. Carrying on would delete the folder
+  // and the branch row while containers are still running, and nothing
+  // would ever clean them up. It runs even when the folder is already
+  // gone, because `down -p` finds containers by their project label.
+  await shell.run(dockerComposeDownCommand({ branchHandle: branch.handle }));
+  // The route goes only after `down` succeeds. Removing it first meant a
+  // failed `down` left a row still marked running with no preview link.
   const hasDomainRoute = await hasDomainRouteForHandle(branch.handle);
   if (hasDomainRoute) {
     await info("Removing domain from deployment..");
@@ -265,34 +324,11 @@ export async function destroy({
       })
     );
   }
+  const images = await findBranchImages(branch.handle);
+  if (images.length > 0) {
+    await shell.run(removeImagesCommand(images));
+  }
   const branchFolderExists = await hasBranchFolder(branch.handle);
-  if (branchFolderExists) {
-    await info("Stopping deployment..");
-    try {
-      await shell.run(
-        dockerComposeDownCommand({
-          branchHandle: branch.handle,
-          rootDirectory: branch.dockerComposeDirectory,
-        })
-      );
-    } catch (error) {
-      await info("Docker compose down failed..");
-      if (error instanceof Error) {
-        await info(`Reason: ${error.message}`);
-      }
-    }
-  }
-  await info("Prune unused docker stuff..");
-  try {
-    await shell.run(dockerSystemPruneCommand());
-  } catch (error) {
-    // If pruning fails we don't want to stop the deployment process.
-    if (error instanceof Error) {
-      await info(error.message);
-    } else {
-      await info("Pruning failed with unknown error. Continuing..");
-    }
-  }
   if (branchFolderExists) {
     await info("Destroying deployment assets..");
     await shell.run(removeDeploymentFolder({ branchHandle: branch.handle }));
@@ -304,29 +340,34 @@ interface StopOptions extends BaseOptions {
 }
 
 /**
- * Stop a deployment's containers without destroying files or DB record.
- * Lighter than destroy — allows fast restart on next deploy.
+ * Remove a deployment's containers and database volume, keeping its files,
+ * image, and DB record. Lighter than destroy — allows fast restart on next
+ * deploy.
  */
 export async function stop({ logger, branch }: StopOptions): Promise<void> {
   if (process.env.NODE_ENV === "production") {
     const info = createInfo(logger);
     const shell = new Shell(logger);
 
+    // Runs even when the folder is gone: `down -p` finds containers by
+    // their project label, and skipping it would leave containers running
+    // under a row marked "stopped", which the recycler never picks again.
+    // `down --volumes`, not `stop`: a stopped branch keeps no containers
+    // and no database volume (about 164 MB each on 2026-10-09), and the
+    // next deploy reseeds it. The box-wide prune used to do this to every
+    // stopped branch. The image stays, so the restart reuses its cache.
+    await info(`Stopping containers for "${branch.name}"..`);
+    await shell.run(dockerComposeDownCommand({ branchHandle: branch.handle }));
+    // The containers are gone, so record it now: if a later step throws,
+    // the row must not still claim a running preview.
+    await updateBranchContainerStatus(branch.name, "stopped");
+    // Route last, as in destroy(): a failed `down` keeps the route.
     const hasDomainRoute = await hasDomainRouteForHandle(branch.handle);
     if (hasDomainRoute) {
       await info("Removing domain route for stopped branch..");
       await shell.run(removeCaddyRouteCommand({ branchHandle: branch.handle }));
     }
-
-    const branchFolderExists = await hasBranchFolder(branch.handle);
-    if (branchFolderExists) {
-      await info(`Stopping containers for "${branch.name}"..`);
-      await shell.run(
-        dockerComposeStopCommand({
-          branchHandle: branch.handle,
-          rootDirectory: branch.dockerComposeDirectory,
-        })
-      );
+    if (await hasBranchFolder(branch.handle)) {
       // Release the host port so it can't collide with another deployment
       // that grabs it while this branch is stopped. The next deploy will
       // allocate a fresh free port.
@@ -338,11 +379,8 @@ export async function stop({ logger, branch }: StopOptions): Promise<void> {
     }
   } else {
     await logger?.info(`[dev] Simulating stop for "${branch.name}"`);
+    await updateBranchContainerStatus(branch.name, "stopped");
   }
-  // Own the DB transition so callers (deploy's rollback path,
-  // ensureMemoryAvailable) can't leave the row out of sync with the
-  // side effects we just performed.
-  await updateBranchContainerStatus(branch.name, "stopped");
 }
 
 async function doesDeploymentWithHandleExist(handle: string): Promise<boolean> {
@@ -439,11 +477,37 @@ async function hasDomainRouteForHandle(handle: string): Promise<boolean> {
   return false;
 }
 
-function dockerSystemPruneCommand(): SpawnCommand {
+/**
+ * Removes the stopped intermediate containers the legacy builder leaves
+ * behind. Compose v2.2.2 doesn't pass `Remove` to the build (v2.2.3 does),
+ * so each build step that runs leaves one, holding its layer. They have no
+ * compose label, which is how this tells them apart from a branch's own
+ * containers.
+ */
+function dockerBuildContainerPruneCommand(): SpawnCommand {
   return {
     type: "spawn-command",
     command: "docker",
-    args: ["system", "prune", "-a", "--volumes", "-f"],
+    args: [
+      "container",
+      "prune",
+      "-f",
+      "--filter",
+      "label!=com.docker.compose.project",
+    ],
+  };
+}
+
+/**
+ * Removes images with no tag left, which each rebuild leaves behind when it
+ * retags `<handle>_strapi`. Unlike `docker system prune -a`, it never touches
+ * containers, volumes, or the layers tagged images still use as build cache.
+ */
+function dockerDanglingImagePruneCommand(): SpawnCommand {
+  return {
+    type: "spawn-command",
+    command: "docker",
+    args: ["image", "prune", "-f"],
   };
 }
 
@@ -526,7 +590,7 @@ function dockerComposeUpCommand({
   return {
     type: "spawn-command",
     command: "docker",
-    args: ["compose", "-p", branchHandle, "up", "--no-deps", "--build", "-d"],
+    args: ["compose", "-p", composeProjectName(branchHandle), "up", "--no-deps", "--build", "-d"],
     workingDirectory,
   };
 }
@@ -545,24 +609,63 @@ function removeCaddyRouteCommand({
   };
 }
 
-interface DockerComposeDownCommandOptions {
-  branchHandle: string;
-  rootDirectory?: string;
+function composeProjectName(branchHandle: string): string {
+  // Last line of defense; upsertBranch already refuses these handles.
+  if (isReservedHandle(branchHandle)) {
+    throw new Error(
+      `Branch handle "${branchHandle}" is Govinor's own Compose project; refusing to run docker compose for it`
+    );
+  }
+  return branchHandle;
 }
 
+interface DockerComposeDownCommandOptions {
+  branchHandle: string;
+}
+
+/**
+ * With `-p`, Compose v2 rebuilds the project from container labels and never
+ * reads the compose file, so this works from any directory, including after
+ * the branch folder is gone. --volumes removes the branch's database volume,
+ * which a box-wide `docker system prune` used to clean up.
+ */
 function dockerComposeDownCommand({
   branchHandle,
-  rootDirectory,
 }: DockerComposeDownCommandOptions): SpawnCommand {
-  const workingDirectory = getRepoDeployPath({
-    branchHandle,
-    rootDirectory,
-  });
   return {
     type: "spawn-command",
     command: "docker",
-    args: ["compose", "-p", branchHandle, "down"],
-    workingDirectory,
+    args: ["compose", "-p", composeProjectName(branchHandle), "down", "--volumes"],
+    workingDirectory: DEPLOYMENTS_DIRECTORY,
+  };
+}
+
+/**
+ * The images Compose built for this branch (`<handle>_strapi`), by name.
+ * They stay tagged after `down`, so `docker image prune` never removes them.
+ * Matching on the project prefix covers whatever services the compose file
+ * builds and never matches pulled images such as postgres:17. Handles never
+ * contain `_`, so `<handle>_*` can't match another branch. The handle is a
+ * DNS label ([a-z0-9-]), so it is safe in the shell string.
+ */
+async function findBranchImages(branchHandle: string): Promise<string[]> {
+  const result = await new Shell().run({
+    type: "command",
+    command: `docker images --filter "reference=${branchHandle}_*" --format "{{.Repository}}:{{.Tag}}"`,
+  });
+  return (result?.output ?? "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+}
+
+// By name, not ID: `docker image rm <id>` refuses an ID tagged in more
+// than one repository.
+function removeImagesCommand(images: string[]): SpawnCommand {
+  return {
+    type: "spawn-command",
+    command: "docker",
+    args: ["image", "rm", ...images],
   };
 }
 
@@ -600,18 +703,3 @@ async function hasBranchFolder(branchHandle: string) {
   return name != null;
 }
 
-function dockerComposeStopCommand({
-  branchHandle,
-  rootDirectory,
-}: DockerComposeDownCommandOptions): SpawnCommand {
-  const workingDirectory = getRepoDeployPath({
-    branchHandle,
-    rootDirectory,
-  });
-  return {
-    type: "spawn-command",
-    command: "docker",
-    args: ["compose", "-p", branchHandle, "stop"],
-    workingDirectory,
-  };
-}
