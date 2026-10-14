@@ -2,6 +2,7 @@ import fs from "fs/promises";
 import getPort from "get-port";
 import invariant from "tiny-invariant";
 import { parse, stringify } from "envfile";
+import path from "path";
 import {
   DEEPL_API_KEY,
   DEPLOYMENTS_DIRECTORY,
@@ -182,6 +183,24 @@ async function runDeploy({ logger, branch }: DeployOptions): Promise<void> {
     branchHandle: branch.handle,
     rootDirectory: branch.dockerComposeDirectory,
   });
+  if (branch.handle !== MASTER_HANDLE) {
+    try {
+      await shell.run(
+        restoreMasterDatabaseCommand({
+          branchHandle: branch.handle,
+          rootDirectory: branch.dockerComposeDirectory,
+        })
+      );
+    } catch (error) {
+      // The copy is one transaction, so the database is still empty and
+      // Strapi seeds it from scratch, as before the copy existed.
+      await info(
+        error instanceof Error
+          ? `Copying master's database failed: ${error.message}. Strapi will seed from scratch..`
+          : "Copying master's database failed. Strapi will seed from scratch.."
+      );
+    }
+  }
   await info("Starting deployment..");
   try {
     await shell.run(
@@ -592,6 +611,30 @@ function dockerComposeUpCommand({
     command: "docker",
     args: ["compose", "-p", composeProjectName(branchHandle), "up", "--no-deps", "--build", "-d"],
     workingDirectory,
+  };
+}
+
+// Master's preview is the source the others copy their database from.
+const MASTER_HANDLE = "master";
+
+interface RestoreMasterDatabaseCommandOptions {
+  branchHandle: string;
+  rootDirectory?: string;
+}
+
+function restoreMasterDatabaseCommand({
+  branchHandle,
+  rootDirectory,
+}: RestoreMasterDatabaseCommandOptions): SpawnCommand {
+  return {
+    type: "spawn-command",
+    command: path.join(process.cwd(), "scripts", "restore-master-db.sh"),
+    args: [
+      composeProjectName(branchHandle),
+      MASTER_HANDLE,
+      `https://${MASTER_HANDLE}.${DEPLOY_DOMAIN}`,
+    ],
+    workingDirectory: getRepoDeployPath({ branchHandle, rootDirectory }),
   };
 }
 
