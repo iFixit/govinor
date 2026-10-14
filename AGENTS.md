@@ -16,8 +16,9 @@ npm run dev:redis      # Redis via docker compose
 # Build
 npm run build          # Prisma generate + Remix build
 
-# Type checking (no linter or test runner configured)
+# Type checking and tests (no linter configured)
 npm run typecheck
+npm test               # Vitest (files named *.test.ts)
 
 # Database (SQLite via Prisma)
 npm run db:migrate       # Create and apply migration (dev)
