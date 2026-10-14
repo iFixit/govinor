@@ -39,16 +39,23 @@ export abstract class BaseJob<PayloadType = any, ReturnType = any> {
     );
   }
 
-  performLater(payload: PayloadType): Promise<Job<PayloadType, ReturnType>> {
-    return this.queue.add(this.getJobName(payload), payload, this.jobOptions);
+  performLater(
+    payload: PayloadType,
+    options?: JobsOptions
+  ): Promise<Job<PayloadType, ReturnType>> {
+    return this.queue.add(this.getJobName(payload), payload, {
+      ...this.jobOptions,
+      ...options,
+    });
   }
 
   static performLater<T extends BaseJob<PayloadOf<T>, ReturnTypeOf<T>>>(
     this: { new (options?: QueueOptions): T },
-    payload: PayloadOf<T>
+    payload: PayloadOf<T>,
+    options?: JobsOptions
   ) {
     const queue = new this({ connection });
-    return queue.performLater(payload);
+    return queue.performLater(payload, options);
   }
 
   static startWorker<T extends BaseJob<PayloadOf<T>, ReturnTypeOf<T>>>(
