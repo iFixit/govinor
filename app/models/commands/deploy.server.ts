@@ -242,6 +242,13 @@ async function runDeploy({ logger, branch }: DeployOptions): Promise<void> {
     }
     throw error;
   }
+  await waitForHealthCheck({
+    port,
+    info,
+    shell,
+    branchHandle: branch.handle,
+    rootDirectory: branch.dockerComposeDirectory,
+  });
   // Only mark running once the preview route is in place, so the
   // dashboard invariant holds: containerStatus === "running" ⟺ the
   // preview is actually reachable. If route assignment fails we tear
@@ -292,6 +299,54 @@ async function simulateDeploy({
   await sleep(1000);
   await info("[dev] Deploy complete");
   await updateBranchContainerStatus(branch.name, "running");
+}
+
+interface WaitForHealthCheckOptions {
+  port: number;
+  info: (message: string) => Promise<void>;
+  shell: Shell;
+  branchHandle: string;
+  rootDirectory?: string;
+}
+
+/**
+ * Waits for Strapi's `/_health` to answer, so a branch marked running can
+ * serve requests instead of 502s. Gives up after 3 minutes without failing
+ * the deploy: a preview seeding from scratch takes about 13.
+ */
+async function waitForHealthCheck({
+  port,
+  info,
+  shell,
+  branchHandle,
+  rootDirectory,
+}: WaitForHealthCheckOptions): Promise<void> {
+  await info("Waiting for the preview to answer its health check..");
+  const deadline = Date.now() + 3 * 60 * 1000;
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(`http://localhost:${port}/_health`, {
+        signal: AbortSignal.timeout(5000),
+      });
+      if (response.ok) {
+        return;
+      }
+    } catch (error) { }
+    await sleep(2000);
+  }
+  // Strapi that can't boot on master's data exits here, and so would
+  // production. Its logs say why.
+  await info(
+    "The preview isn't answering after 3 minutes. It may still be seeding, or it failed to start. Its latest logs:"
+  );
+  try {
+    await shell.run({
+      type: "spawn-command",
+      command: "docker",
+      args: ["compose", "-p", composeProjectName(branchHandle), "logs", "--tail", "40"],
+      workingDirectory: getRepoDeployPath({ branchHandle, rootDirectory }),
+    });
+  } catch (error) { }
 }
 
 function sleep(ms: number): Promise<void> {
