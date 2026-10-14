@@ -77,6 +77,7 @@ async function runDeploy({ logger, branch }: DeployOptions): Promise<void> {
   for (const command of [
     dockerBuildContainerPruneCommand(),
     dockerDanglingImagePruneCommand(),
+    dockerBuilderPruneCommand(),
   ]) {
     try {
       await shell.run(command);
@@ -508,6 +509,23 @@ function dockerDanglingImagePruneCommand(): SpawnCommand {
     type: "spawn-command",
     command: "docker",
     args: ["image", "prune", "-f"],
+  };
+}
+
+/**
+ * BuildKit's cache is not garbage collected on Docker 20.10 unless daemon.json
+ * turns it on, so it only grows. Trims it to the newest ~5 GB before each
+ * build, which is about four branches' worth of layers (one is ~1.1 GB, mostly
+ * shared). The build that follows can still add to it, so the cache peaks
+ * above this until the next prune.
+ */
+const BUILDKIT_CACHE_KEEP_STORAGE = "5GB";
+
+function dockerBuilderPruneCommand(): SpawnCommand {
+  return {
+    type: "spawn-command",
+    command: "docker",
+    args: ["builder", "prune", "-f", "--keep-storage", BUILDKIT_CACHE_KEEP_STORAGE],
   };
 }
 
