@@ -58,46 +58,11 @@ trap 'rm -f "$dump"' EXIT
 docker exec "$master_db" pg_dump -U strapi --no-owner strapi >"$dump"
 
 # NOT VALID: master has orphan rows in its link and component tables, so
-# its foreign keys would fail to re-add. The SQL below deletes the orphans
-# and validates them. pg_dump empties search_path, hence `public.`.
+# its foreign keys would fail to re-add. restore-master-db.sql, run in the
+# same transaction, deletes the orphans and checks every key again.
 {
    sed -E '/^    ADD CONSTRAINT .* FOREIGN KEY .*;$/ s/;$/ NOT VALID;/' "$dump"
-   cat <<'SQL'
--- Master's tokens and sessions stay on master. Strapi creates the usual
--- admin from ADMIN_PASS when admin_users is empty. Every created_by and
--- updated_by foreign key is ON DELETE SET NULL.
-DELETE FROM public.strapi_api_tokens;
-DELETE FROM public.strapi_transfer_tokens;
-DELETE FROM public.strapi_sessions;
-DELETE FROM public.admin_users;
-
--- Files master stored on its own disk are served from master, which is
--- what the crawler seed writes too.
-UPDATE public.files SET url = :'origin' || url WHERE url LIKE '/%';
-UPDATE public.files
-SET formats = replace(formats::text, '"url": "/uploads/', '"url": "' || :'origin' || '/uploads/')::jsonb
-WHERE formats::text LIKE '%"url": "/uploads/%';
-
-DO $$
-DECLARE c record; n bigint; total bigint := 0;
-BEGIN
-  FOR c IN
-    SELECT con.conname, con.conrelid::regclass AS tbl, con.confrelid::regclass AS ref,
-           a.attname AS col, af.attname AS refcol
-    FROM pg_constraint con
-    JOIN pg_attribute a  ON a.attrelid = con.conrelid  AND a.attnum = con.conkey[1]
-    JOIN pg_attribute af ON af.attrelid = con.confrelid AND af.attnum = con.confkey[1]
-    WHERE con.contype = 'f' AND NOT con.convalidated AND array_length(con.conkey, 1) = 1
-  LOOP
-    EXECUTE format('DELETE FROM %s t WHERE t.%I IS NOT NULL AND NOT EXISTS (SELECT 1 FROM %s r WHERE r.%I = t.%I)',
-                   c.tbl, c.col, c.ref, c.refcol, c.col);
-    GET DIAGNOSTICS n = ROW_COUNT;
-    total := total + n;
-    EXECUTE format('ALTER TABLE %s VALIDATE CONSTRAINT %I', c.tbl, c.conname);
-  END LOOP;
-  RAISE NOTICE 'orphan rows removed: %', total;
-END $$;
-SQL
+   cat "$(dirname "$0")/restore-master-db.sql"
 } | docker exec -i "$db" psql -q -o /dev/null -1 -v ON_ERROR_STOP=1 \
    -v origin="$origin" -U strapi strapi
 
