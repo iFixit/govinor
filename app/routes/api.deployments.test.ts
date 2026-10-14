@@ -65,6 +65,7 @@ describe("POST /api/deployments", () => {
     ["a range-like branch", { repository: "iFixit/ifixit", branch: "a..b" }],
     ["whitespace in the branch", { repository: "iFixit/ifixit", branch: "a b" }],
     ["Govinor's own handle", { repository: "iFixit/ifixit", branch: "Govinor" }],
+    ["a branch with an empty handle", { repository: "iFixit/ifixit", branch: "___" }],
   ])("answers 400 for %s", async (_, body) => {
     const response = await post(body);
     expect(response.status).toBe(400);
