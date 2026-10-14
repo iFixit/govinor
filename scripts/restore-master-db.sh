@@ -7,8 +7,8 @@
 #   restore-master-db.sh <branch handle> <master handle> <master origin>
 #
 # It starts only the branch's Postgres. It copies nothing, and exits 0, when
-# master's Postgres isn't running or the branch database already has tables
-# (a redeploy). The copy runs as one transaction, so a failure leaves the
+# master's Postgres isn't running, master's Strapi isn't answering (it may
+# still be seeding), or the branch database already has tables (a redeploy). The copy runs as one transaction, so a failure leaves the
 # database empty and Strapi seeds it as before.
 set -euo pipefail
 
@@ -32,6 +32,14 @@ done
 
 if [ "$(docker inspect -f '{{.State.Running}}' "$master_db" 2>/dev/null)" != true ]; then
    echo "$master_db isn't running, so Strapi will seed from scratch."
+   exit 0
+fi
+
+# Strapi seeds before it starts listening, so a master that answers has
+# finished seeding. A copy taken mid-seed would have some content, and the
+# branch's Strapi would then skip its own seed and stay partial for good.
+if ! curl -fsS --max-time 10 -o /dev/null "$origin/_health"; then
+   echo "$origin isn't answering its health check, so Strapi will seed from scratch."
    exit 0
 fi
 
