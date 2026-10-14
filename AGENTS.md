@@ -38,6 +38,7 @@ npm run deploy           # Build + migrate + restart systemd service
 **Remix v2 full-stack app** with a separate BullMQ worker process:
 
 1. **GitHub webhooks** arrive at `/app/routes/github.webhook/` (push, pull_request, delete events)
+   - For repositories that deploy only on pull requests (iFixit's), CI starts each deploy through `POST /api/deployments` (`app/routes/api.deployments.ts`), and the pull_request webhook only removes a preview when its PR closes
 2. Handlers queue **BullMQ jobs** (PushJob for deploy, DeleteDeploymentJob for cleanup)
 3. **Worker process** (`/workers/index.ts`) picks up jobs from Redis and executes shell commands (Docker, Git, Caddy config)
 4. **Dashboard UI** (Remix routes) shows deployment status, branches, repositories
@@ -46,7 +47,7 @@ npm run deploy           # Build + migrate + restart systemd service
 - `app/routes/` - Remix file-based routing (loaders for GET, actions for POST/PUT/DELETE)
 - `app/models/` - Server-side Prisma queries and shell command executors (`app/models/commands/`)
 - `app/jobs/` - BullMQ job definitions extending `BaseJob` from `app/lib/jobs.server.ts`
-- `app/lib/` - Server utilities: auth, sessions, shell executor, GitHub client (Octokit), logging
+- `app/lib/` - Server utilities: auth, sessions, shell executor, API token check, logging
 - `app/helpers/` - Pure utility functions (deployment helpers, path helpers, date formatting)
 - `config/` - Environment variable loading (`env.server.ts`) and Redis/BullMQ config (`jobs.ts`)
 - `workers/` - Standalone worker process that initializes job consumers
@@ -65,7 +66,7 @@ npm run deploy           # Build + migrate + restart systemd service
 
 ## Tech Stack
 
-Remix 2.6, React 18, TypeScript (strict), Prisma 4 (SQLite), BullMQ (Redis), Tailwind CSS 3 (JIT), Headless UI, Octokit, Zod, dayjs
+Remix 2.6, React 18, TypeScript (strict), Prisma 4 (SQLite), BullMQ (Redis), Tailwind CSS 3 (JIT), Headless UI, Zod, dayjs
 
 ## Pull Requests
 
