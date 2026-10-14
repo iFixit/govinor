@@ -57,13 +57,7 @@ dump=$(mktemp)
 trap 'rm -f "$dump"' EXIT
 docker exec "$master_db" pg_dump -U strapi --no-owner strapi >"$dump"
 
-# NOT VALID: master has orphan rows in its link and component tables, so
-# its foreign keys would fail to re-add. restore-master-db.sql, run in the
-# same transaction, deletes the orphans and checks every key again.
-{
-   sed -E '/^    ADD CONSTRAINT .* FOREIGN KEY .*;$/ s/;$/ NOT VALID;/' "$dump"
-   cat "$(dirname "$0")/restore-master-db.sql"
-} | docker exec -i "$db" psql -q -o /dev/null -1 -v ON_ERROR_STOP=1 \
+cat "$dump" "$(dirname "$0")/restore-master-db.sql" | docker exec -i "$db" psql -q -o /dev/null -1 -v ON_ERROR_STOP=1 \
    -v origin="$origin" -U strapi strapi
 
 echo "Copied $master_db into $db."
