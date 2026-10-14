@@ -147,10 +147,12 @@ export default function EditRepositoryPage() {
                 <div className="sm:col-span-4">
                   <SwitchGroup>
                     <span className="flex flex-grow flex-col">
-                      <SwitchLabel>Deploy only open pull requests</SwitchLabel>
+                      <SwitchLabel>Deploy only when CI asks</SwitchLabel>
                       <SwitchDescription>
-                        If enabled, only branches that have open pull requests
-                        will be deployed automatically.
+                        If enabled, branches deploy only when CI calls
+                        /api/deployments, and a branch's preview is removed
+                        when its pull request closes. master still deploys on
+                        every push.
                       </SwitchDescription>
                     </span>
                     <Switch
