@@ -610,6 +610,9 @@ function dockerComposeUpCommand({
     command: "docker",
     args: ["compose", "-p", composeProjectName(branchHandle), "up", "--no-deps", "--build", "-d"],
     workingDirectory,
+    // Compose v2.2.2 builds with BuildKit only when the docker CLI's
+    // DOCKER_BUILDKIT is set. Plain progress keeps job logs line-based.
+    env: { ...process.env, DOCKER_BUILDKIT: "1", BUILDKIT_PROGRESS: "plain" },
   };
 }
 
