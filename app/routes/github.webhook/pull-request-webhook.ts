@@ -1,13 +1,14 @@
 import { json } from "@remix-run/node";
 import { z } from "zod";
 import { DeleteDeploymentJob } from "~/jobs/delete-deployment-job.server";
-import { PushJob } from "~/jobs/push-job.server";
-import { findBranch, upsertBranch } from "~/models/branch.server";
-import { findPullRequestFiles } from "~/models/pull-request.server";
+import { findBranch } from "~/models/branch.server";
 import { type Repository } from "~/models/repository.server";
 
 type GithubPullRequestEvent = z.infer<typeof GithubPullRequestEventSchema>;
 
+// Deploys come from iFixit's CI through POST /api/deployments, which decides
+// which pull requests need a preview. This webhook only removes a preview
+// once its pull request is closed.
 export async function processPullRequestWebhook(
   webhook: GithubPullRequestEvent,
   repository: Repository
@@ -20,95 +21,39 @@ export async function processPullRequestWebhook(
       repository: repository.id
     });
 
-  const [files, branch] = await findPullRequestData();
-  const relevantChanges = hasChangesAffectingNextjsApp();
+  const branchName = webhook.payload.pull_request.head.ref;
 
-  if (!branch && !relevantChanges) {
+  if (webhook.payload.action !== "closed") {
     return json({
       status: "skipped",
       message: "No action taken",
-      reason: "There isn't a built branch and there aren't any changes affecting Nextjs",
-      filesChanged: files.map((file) => file.filename),
+      reason: "Deployments are started by CI through /api/deployments",
+      action: webhook.payload.action,
       pullRequest: webhook.payload.number,
       repository: repository.id
     });
   }
 
-  switch (webhook.payload.action) {
-    case "opened":
-    case "synchronize": {
-      await deploy();
-      return json({
-        status: "success",
-        message: `Started branch "${branchName()}" deployment`,
-        action: webhook.payload.action,
-        pullRequest: webhook.payload.number,
-        branch: branchName(),
-        repository: repository.id
-      });
-    }
-    case "closed": {
-      await removeDeployment();
-      return json({
-        status: "success",
-        message: `Deleting branch "${branchName()}" deployment`,
-        reason: "Pull request was closed",
-        pullRequest: webhook.payload.number,
-        branch: branchName(),
-        repository: repository.id
-      });
-    }
-    default:
-      // The payload type here is "never". We're casting it to any so we're able to log some properties for debug purposes
-      const unknownPayload = webhook.payload as any;
-      return json({
-        status: "skipped",
-        message: "No action taken",
-        reason: `Unhandled pull request action: ${unknownPayload?.action}`,
-        pullRequest: unknownPayload?.number,
-        repository: repository.id
-      });
-  }
-
-  function findPullRequestData() {
-    return Promise.all([
-      findPullRequestFiles({
-        repository,
-        prNumber: webhook.payload.number,
-      }),
-      findBranch(branchName()),
-    ]);
-  }
-
-  function hasChangesAffectingNextjsApp() {
-    return files.some(
-      (file) =>
-        file.filename.startsWith("apps/") ||
-        file.filename.startsWith("packages/")
-    );
-  }
-
-  async function deploy() {
-    await upsertBranch({
-      branchName: branchName(),
-      cloneUrl: webhook.payload.repository.clone_url,
-      dockerComposeDirectory: repository.dockerComposeDirectory,
-      repositoryId: repository.id,
-    });
-    await PushJob.performLater({
-      branch: branchName(),
+  if (!(await findBranch(branchName))) {
+    return json({
+      status: "skipped",
+      message: "No action taken",
+      reason: "Pull request was closed and has no deployment",
+      pullRequest: webhook.payload.number,
+      branch: branchName,
+      repository: repository.id
     });
   }
 
-  async function removeDeployment() {
-    await DeleteDeploymentJob.performLater({
-      branch: branchName(),
-    });
-  }
-
-  function branchName() {
-    return webhook.payload.pull_request.head.ref;
-  }
+  await DeleteDeploymentJob.performLater({ branch: branchName });
+  return json({
+    status: "success",
+    message: `Deleting branch "${branchName}" deployment`,
+    reason: "Pull request was closed",
+    pullRequest: webhook.payload.number,
+    branch: branchName,
+    repository: repository.id
+  });
 }
 
 const RepositorySchema = z.object({
