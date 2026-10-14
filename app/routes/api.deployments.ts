@@ -22,7 +22,12 @@ const DeploymentRequestSchema = z.object({
       (name) => !name.startsWith("-") && !name.includes("..") && !/[\s\x00-\x1f\x7f]/.test(name),
       "Invalid branch name"
     ),
+  // The commit CI is testing. With it, every caller that asks for the same
+  // branch and commit while a deploy is queued or running gets that deploy.
+  sha: z.string().regex(/^[0-9a-f]{40}$/).optional(),
 });
+
+const IN_PROGRESS_STATES = ["waiting", "delayed", "active"];
 
 /** POST /api/deployments: queue a deploy of a repository branch, for CI. */
 export async function action({ request }: ActionFunctionArgs) {
@@ -54,10 +59,27 @@ export async function action({ request }: ActionFunctionArgs) {
     dockerComposeDirectory: repository.dockerComposeDirectory,
     repositoryId: repository.id,
   });
-  const job = await PushJob.performLater({ branch });
+  const job = await queueDeploy(branch, body.data.sha && `${handle}-${body.data.sha}`);
 
   return json(
     { jobId: job.id, branch, handle, url: `https://${handle}.${DEPLOY_DOMAIN}` },
     202
   );
+}
+
+/**
+ * Two workflows test each push to a Strapi PR, and both ask for its deploy.
+ * A job id made from the branch and commit gives them the same job while it
+ * is queued or running. A finished one is replaced, so a re-run deploys
+ * again (the preview may have been stopped since).
+ */
+async function queueDeploy(branch: string, jobId?: string) {
+  if (jobId) {
+    const existing = await PushJob.find(jobId);
+    if (existing && IN_PROGRESS_STATES.includes(await existing.getState())) {
+      return existing;
+    }
+    await existing?.remove();
+  }
+  return PushJob.performLater({ branch }, jobId ? { jobId } : undefined);
 }

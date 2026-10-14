@@ -57,8 +57,10 @@ export function getBranchHandle(branchName: string) {
 // Govinor's own Redis (and its job queue in the govinor_redis_data volume)
 // runs as Compose project "govinor", named after /home/ubuntu/govinor. A
 // branch whose handle matched would share that project, and `down --volumes`
-// would delete the queue.
-const RESERVED_HANDLES = ['govinor'];
+// would delete the queue. An empty handle (a branch name with no [a-z0-9],
+// such as "___") would have no subdomain, folder, or Compose project of its
+// own, so it is refused too.
+const RESERVED_HANDLES = ['govinor', ''];
 
 export function isReservedHandle(handle: string): boolean {
    return RESERVED_HANDLES.includes(handle);

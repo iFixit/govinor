@@ -28,4 +28,9 @@ describe("isReservedHandle", () => {
     expect(isReservedHandle("govinor")).toBe(true);
     expect(isReservedHandle("master")).toBe(false);
   });
+
+  it("reserves the empty handle of a branch with no letters or digits", () => {
+    expect(getBranchHandle("___")).toBe("");
+    expect(isReservedHandle("")).toBe(true);
+  });
 });
