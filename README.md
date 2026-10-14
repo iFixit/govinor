@@ -117,6 +117,7 @@ To install govinor, you need to SSH into your EC2 instance and run the following
    | `ADMIN_PASSWORD` | Password for the Govinor dashboard |
    | `GITHUB_WEBHOOK_SECRET` | Secret configured in your GitHub repo's webhook settings |
    | `GITHUB_API_TOKEN` | GitHub Personal Access Token with repo access — create one in GitHub Developer Settings, renew yearly |
+   | `GOVINOR_API_TOKEN` | Bearer token CI uses to start deployments through `/api/deployments`; the API answers 503 while it's unset. Generate with `openssl rand -hex 32` and store the same value as the repo's `GOVINOR_API_TOKEN` Actions secret |
    | `DEPLOY_DOMAIN` | Domain where previews are served (defaults to `govinor.com`) |
    | `STRAPI_ADMIN_PASSWORD` | Admin password passed to deployed Strapi containers |
    | `STRAPI_TRANSFER_TOKEN_SALT` | Salt for Strapi transfer tokens |

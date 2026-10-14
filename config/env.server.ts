@@ -26,6 +26,9 @@ export const STRAPI_ADMIN_BACKEND_URL =
 
 export const GITHUB_API_TOKEN = process.env.GITHUB_API_TOKEN;
 
+// Bearer token CI sends to /api/*. When unset, those routes answer 503.
+export const GOVINOR_API_TOKEN = process.env.GOVINOR_API_TOKEN;
+
 export const DEEPL_API_KEY = process.env.DEEPL_API_KEY;
 
 const DEFAULT_MEMORY_THRESHOLD_MB = 1536;
