@@ -8,8 +8,10 @@
 #
 # It starts only the branch's Postgres. It copies nothing, and exits 0, when
 # master's Postgres isn't running, master's Strapi isn't answering (it may
-# still be seeding), or the branch database already has tables (a redeploy). The copy runs as one transaction, so a failure leaves the
-# database empty and Strapi seeds it as before.
+# still be seeding), or the branch database already has tables (a
+# redeploy). The copy runs as one transaction, so a failure leaves the
+# database empty and Strapi seeds it as before. AGENTS.md ("Preview data")
+# says why the seed stays.
 set -euo pipefail
 
 handle=$1
