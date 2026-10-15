@@ -1,5 +1,6 @@
 import { json } from "@remix-run/node";
 import { z } from "zod";
+import { getRepoDirectory } from "~/helpers/deployment-helpers";
 import { DeleteDeploymentJob } from "~/jobs/delete-deployment-job.server";
 import { PushJob } from "~/jobs/push-job.server";
 import { findBranch, upsertBranch } from "~/models/branch.server";
@@ -21,13 +22,13 @@ export async function processPullRequestWebhook(
     });
 
   const [files, branch] = await findPullRequestData();
-  const relevantChanges = hasChangesAffectingNextjsApp();
+  const relevantChanges = hasChangesInDeployedDirectory();
 
   if (!branch && !relevantChanges) {
     return json({
       status: "skipped",
       message: "No action taken",
-      reason: "There isn't a built branch and there aren't any changes affecting Nextjs",
+      reason: `There isn't a built branch and there aren't any changes in ${repository.dockerComposeDirectory}`,
       filesChanged: files.map((file) => file.filename),
       pullRequest: webhook.payload.number,
       repository: repository.id
@@ -37,6 +38,18 @@ export async function processPullRequestWebhook(
   switch (webhook.payload.action) {
     case "opened":
     case "synchronize": {
+      // A branch deployed under the old rule keeps its preview until the
+      // pull request closes, but isn't redeployed for unrelated pushes.
+      if (!relevantChanges) {
+        return json({
+          status: "skipped",
+          message: "No action taken",
+          reason: `No changes in ${repository.dockerComposeDirectory}`,
+          pullRequest: webhook.payload.number,
+          branch: branchName(),
+          repository: repository.id
+        });
+      }
       await deploy();
       return json({
         status: "success",
@@ -80,12 +93,18 @@ export async function processPullRequestWebhook(
     ]);
   }
 
-  function hasChangesAffectingNextjsApp() {
-    return files.some(
-      (file) =>
-        file.filename.startsWith("apps/") ||
-        file.filename.startsWith("packages/")
-    );
+  // Only pull requests that change what Govinor deploys get a preview.
+  // dockerComposeDirectory is the Repository column (prisma/schema.prisma)
+  // set under "Docker compose directory" on the repository's edit page, and
+  // the same directory deploy.server.ts runs `docker compose` in. For
+  // iFixit/ifixit it's `apps/strapi`. iFixit's wait-for-strapi workflow
+  // checks the same prefix and points every other preview at master's
+  // Strapi. The prefix ends in "/", so apps/strapi-tools/ doesn't match, and
+  // a directory at the repo root matches every file.
+  function hasChangesInDeployedDirectory() {
+    const directory = getRepoDirectory(repository.dockerComposeDirectory);
+    const prefix = directory === "" ? "" : `${directory}/`;
+    return files.some((file) => file.filename.startsWith(prefix));
   }
 
   async function deploy() {

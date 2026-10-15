@@ -72,12 +72,13 @@ async function runDeploy({ logger, branch }: DeployOptions): Promise<void> {
   const info = createInfo(logger);
   const shell = new Shell(logger);
   // Disk cleanup before the build, so a full disk can still free space.
-  // Only push jobs prune, one at a time, and neither command touches a
+  // Only push jobs prune, one at a time, and none of these touches a
   // container with a compose label, so this can't race a `docker compose
   // down`. A failure here is not worth failing the deploy over.
   for (const command of [
     dockerBuildContainerPruneCommand(),
     dockerDanglingImagePruneCommand(),
+    dockerBuilderPruneCommand(),
   ]) {
     try {
       await shell.run(command);
@@ -398,6 +399,8 @@ export async function destroy({
       })
     );
   }
+  // With BuildKit this only untags the image: its layers stay in the build
+  // cache until the next deploy's `builder prune` trims it.
   const images = await findBranchImages(branch.handle);
   if (images.length > 0) {
     await shell.run(removeImagesCommand(images));
@@ -585,6 +588,26 @@ function dockerDanglingImagePruneCommand(): SpawnCommand {
   };
 }
 
+/**
+ * BuildKit's cache is not garbage collected on Docker 20.10 unless daemon.json
+ * turns it on, so it only grows. Layers a tagged image still uses are never
+ * counted or removed here: the cap only covers layers no image uses any more,
+ * from rebuilt or deleted branches once the dangling-image prune above has run,
+ * plus each branch's build-context snapshot (a few MB; master's is ~180 MB).
+ * Keeps the most recently used 5 GiB of those ("5GB" parses as binary units).
+ * The build that follows can add to it, so it peaks above this until the next
+ * prune.
+ */
+const BUILDKIT_CACHE_KEEP_STORAGE = "5GB";
+
+function dockerBuilderPruneCommand(): SpawnCommand {
+  return {
+    type: "spawn-command",
+    command: "docker",
+    args: ["builder", "prune", "-f", "--keep-storage", BUILDKIT_CACHE_KEEP_STORAGE],
+  };
+}
+
 async function checkEnvFileExists(
   branchHandle: string,
   rootDirectory?: string
@@ -666,6 +689,9 @@ function dockerComposeUpCommand({
     command: "docker",
     args: ["compose", "-p", composeProjectName(branchHandle), "up", "--no-deps", "--build", "-d"],
     workingDirectory,
+    // Compose v2.2.2 builds with BuildKit only when the docker CLI's
+    // DOCKER_BUILDKIT is set. Plain progress keeps job logs line-based.
+    env: { ...process.env, DOCKER_BUILDKIT: "1", BUILDKIT_PROGRESS: "plain" },
   };
 }
 
