@@ -8,7 +8,7 @@ interface GetRepoDeployPathOptions {
 
 export function getRepoDeployPath(options: GetRepoDeployPathOptions) {
    const repoPath = getRepoPath(options.branchHandle);
-   const deployPath = options.rootDirectory ? getRelativePath(options.rootDirectory) : '';
+   const deployPath = options.rootDirectory ? getRepoDirectory(options.rootDirectory) : '';
    let cwd = repoPath;
    if (deployPath.length > 0) {
       cwd += `/${deployPath}`;
@@ -20,8 +20,18 @@ export function getRepoPath(branchHandle: string) {
    return `${DEPLOYMENTS_DIRECTORY}/${branchHandle}`;
 }
 
-function getRelativePath(path: string) {
-   return path.replace(/\/$/g, '').replace(/^\//g, '');
+/**
+ * A repository's dockerComposeDirectory as a path relative to the repo root:
+ * no leading "./" or "/", no trailing "/", and "" for the root itself ("."
+ * or "/"). Deploys run `docker compose` there, and the pull_request webhook
+ * matches changed files against it, so both must read the setting the same
+ * way.
+ */
+export function getRepoDirectory(path: string) {
+   return path
+      .replace(/^(\.?\/+)+/, '')
+      .replace(/\/+$/, '')
+      .replace(/^\.$/, '');
 }
 
 const MAX_DOMAIN_LENGTH = 63;
