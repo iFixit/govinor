@@ -1,5 +1,6 @@
 import { json } from "@remix-run/node";
 import { z } from "zod";
+import { getRepoDirectory } from "~/helpers/deployment-helpers";
 import { DeleteDeploymentJob } from "~/jobs/delete-deployment-job.server";
 import { PushJob } from "~/jobs/push-job.server";
 import { findBranch, upsertBranch } from "~/models/branch.server";
@@ -98,11 +99,11 @@ export async function processPullRequestWebhook(
   // the same directory deploy.server.ts runs `docker compose` in. For
   // iFixit/ifixit it's `apps/strapi`. iFixit's wait-for-strapi workflow
   // checks the same prefix and points every other preview at master's
-  // Strapi. The prefix drops a leading "./" and ends in one "/", so
-  // apps/strapi-tools/ doesn't match.
+  // Strapi. The prefix ends in "/", so apps/strapi-tools/ doesn't match, and
+  // a directory at the repo root matches every file.
   function hasChangesInDeployedDirectory() {
-    const prefix =
-      repository.dockerComposeDirectory.replace(/^\.\//, "").replace(/\/*$/, "") + "/";
+    const directory = getRepoDirectory(repository.dockerComposeDirectory);
+    const prefix = directory === "" ? "" : `${directory}/`;
     return files.some((file) => file.filename.startsWith(prefix));
   }
 
