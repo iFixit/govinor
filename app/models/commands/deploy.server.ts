@@ -211,11 +211,10 @@ async function runDeploy({ logger, branch }: DeployOptions): Promise<void> {
       })
     );
   } catch (error) {
-    // A fresh deploy whose containers fail to start (a port conflict, say)
-    // can leave Postgres running under a row marked "stopped" that nothing
-    // ever picks again. A failed build leaves nothing: Compose builds
-    // images before it creates any container. Remove
-    // what started. Only for a branch that wasn't running: on a redeploy a
+    // A fresh deploy that fails here leaves Postgres running under a row
+    // marked "stopped" that nothing ever picks again: the copy of master's
+    // database started it before the build, and a container that fails to
+    // start (a port conflict, say) leaves it too. Remove what started. Only for a branch that wasn't running: on a redeploy a
     // failed build leaves the old containers serving, and `down` would kill
     // a working preview.
     if (branch.containerStatus !== "running") {
