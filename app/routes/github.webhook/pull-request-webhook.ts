@@ -92,9 +92,14 @@ export async function processPullRequestWebhook(
     ]);
   }
 
-  // Only pull requests that change what Govinor deploys (apps/strapi for
-  // iFixit) get a preview. iFixit's wait-for-strapi workflow checks the same
-  // prefix and points every other preview at master's Strapi.
+  // Only pull requests that change what Govinor deploys get a preview.
+  // dockerComposeDirectory is the Repository column (prisma/schema.prisma)
+  // set under "Docker compose directory" on the repository's edit page, and
+  // the same directory deploy.server.ts runs `docker compose` in. For
+  // iFixit/ifixit it's `apps/strapi`. iFixit's wait-for-strapi workflow
+  // checks the same prefix and points every other preview at master's
+  // Strapi. The prefix drops a leading "./" and ends in one "/", so
+  // apps/strapi-tools/ doesn't match.
   function hasChangesInDeployedDirectory() {
     const prefix =
       repository.dockerComposeDirectory.replace(/^\.\//, "").replace(/\/*$/, "") + "/";
