@@ -9,6 +9,9 @@ DELETE FROM public.strapi_api_tokens;
 DELETE FROM public.strapi_transfer_tokens;
 DELETE FROM public.strapi_sessions;
 DELETE FROM public.admin_users;
+-- Accounts registered on master's Strapi (public registration is on) stay
+-- on master too, password hashes included.
+DELETE FROM public.up_users;
 
 -- Files master stored on its own disk are served from master, which is
 -- what the crawler seed writes too.
