@@ -325,6 +325,8 @@ export async function destroy({
       })
     );
   }
+  // With BuildKit this only untags the image: its layers stay in the build
+  // cache until the next deploy's `builder prune` trims it.
   const images = await findBranchImages(branch.handle);
   if (images.length > 0) {
     await shell.run(removeImagesCommand(images));
@@ -516,7 +518,8 @@ function dockerDanglingImagePruneCommand(): SpawnCommand {
  * BuildKit's cache is not garbage collected on Docker 20.10 unless daemon.json
  * turns it on, so it only grows. Layers a tagged image still uses are never
  * counted or removed here: the cap only covers layers no image uses any more,
- * from rebuilt or deleted branches once the dangling-image prune above has run.
+ * from rebuilt or deleted branches once the dangling-image prune above has run,
+ * plus each branch's build-context snapshot (a few MB; master's is ~180 MB).
  * Keeps the most recently used 5 GiB of those ("5GB" parses as binary units).
  * The build that follows can add to it, so it peaks above this until the next
  * prune.
