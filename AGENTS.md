@@ -62,6 +62,18 @@ npm run deploy           # Build + migrate + restart systemd service
 - **Route breadcrumbs** exported via `handle.getBreadcrumbs()` from route modules
 - **Environment variables** validated with `invariant()` in `config/env.server.ts`
 
+## Preview data
+
+A new Strapi preview starts with an empty database. Govinor copies master.govinor's Postgres into it (`scripts/restore-master-db.sh` and `.sql`), and Strapi then skips its own seed because the database has content. The copy leaves out API and transfer tokens, sessions, admin users and registered Strapi users, and points disk-stored uploads at master.
+
+This is a shortcut for previews, not a replacement for Strapi's seed (the crawler in iFixit's `apps/strapi/src/plugins/addons/server/services/seed`):
+
+- master.govinor itself is re-seeded from production with the crawler, so production credentials never reach a dev environment. Never point the copy at production.
+- Local development runs Strapi on SQLite, where a Postgres dump doesn't apply.
+- Previews fall back to the crawler whenever the copy can't run: master's Postgres down, master still seeding, or the copy failing (it rolls back to an empty database).
+
+Decided on iFixit/govinor#24 (Massimo's review).
+
 ## Tech Stack
 
 Remix 2.6, React 18, TypeScript (strict), Prisma 4 (SQLite), BullMQ (Redis), Tailwind CSS 3 (JIT), Headless UI, Octokit, Zod, dayjs

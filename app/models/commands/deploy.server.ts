@@ -2,6 +2,7 @@ import fs from "fs/promises";
 import getPort from "get-port";
 import invariant from "tiny-invariant";
 import { parse, stringify } from "envfile";
+import path from "path";
 import {
   DEEPL_API_KEY,
   DEPLOYMENTS_DIRECTORY,
@@ -183,6 +184,24 @@ async function runDeploy({ logger, branch }: DeployOptions): Promise<void> {
     branchHandle: branch.handle,
     rootDirectory: branch.dockerComposeDirectory,
   });
+  if (branch.handle !== MASTER_HANDLE) {
+    try {
+      await shell.run(
+        restoreMasterDatabaseCommand({
+          branchHandle: branch.handle,
+          rootDirectory: branch.dockerComposeDirectory,
+        })
+      );
+    } catch (error) {
+      // The copy is one transaction, so the database is still empty and
+      // Strapi seeds it from scratch, as before the copy existed.
+      await info(
+        error instanceof Error
+          ? `Copying master's database failed: ${error.message}. Strapi will seed from scratch..`
+          : "Copying master's database failed. Strapi will seed from scratch.."
+      );
+    }
+  }
   await info("Starting deployment..");
   try {
     await shell.run(
@@ -192,11 +211,10 @@ async function runDeploy({ logger, branch }: DeployOptions): Promise<void> {
       })
     );
   } catch (error) {
-    // A fresh deploy whose containers fail to start (a port conflict, say)
-    // can leave Postgres running under a row marked "stopped" that nothing
-    // ever picks again. A failed build leaves nothing: Compose builds
-    // images before it creates any container. Remove
-    // what started. Only for a branch that wasn't running: on a redeploy a
+    // A fresh deploy that fails here leaves Postgres running under a row
+    // marked "stopped" that nothing ever picks again: the copy of master's
+    // database started it before the build, and a container that fails to
+    // start (a port conflict, say) leaves it too. Remove what started. Only for a branch that wasn't running: on a redeploy a
     // failed build leaves the old containers serving, and `down` would kill
     // a working preview.
     if (branch.containerStatus !== "running") {
@@ -224,6 +242,13 @@ async function runDeploy({ logger, branch }: DeployOptions): Promise<void> {
     }
     throw error;
   }
+  await waitForHealthCheck({
+    port,
+    info,
+    shell,
+    branchHandle: branch.handle,
+    rootDirectory: branch.dockerComposeDirectory,
+  });
   // Only mark running once the preview route is in place, so the
   // dashboard invariant holds: containerStatus === "running" ⟺ the
   // preview is actually reachable. If route assignment fails we tear
@@ -274,6 +299,54 @@ async function simulateDeploy({
   await sleep(1000);
   await info("[dev] Deploy complete");
   await updateBranchContainerStatus(branch.name, "running");
+}
+
+interface WaitForHealthCheckOptions {
+  port: number;
+  info: (message: string) => Promise<void>;
+  shell: Shell;
+  branchHandle: string;
+  rootDirectory?: string;
+}
+
+/**
+ * Waits for Strapi's `/_health` to answer, so a branch marked running can
+ * serve requests instead of 502s. Gives up after 3 minutes without failing
+ * the deploy: a preview seeding from scratch takes about 13.
+ */
+async function waitForHealthCheck({
+  port,
+  info,
+  shell,
+  branchHandle,
+  rootDirectory,
+}: WaitForHealthCheckOptions): Promise<void> {
+  await info("Waiting for the preview to answer its health check..");
+  const deadline = Date.now() + 3 * 60 * 1000;
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(`http://localhost:${port}/_health`, {
+        signal: AbortSignal.timeout(5000),
+      });
+      if (response.ok) {
+        return;
+      }
+    } catch (error) { }
+    await sleep(2000);
+  }
+  // Strapi that can't boot on master's data exits here, and so would
+  // production. Its logs say why.
+  await info(
+    "The preview isn't answering after 3 minutes. It may still be seeding, or it failed to start. Its latest logs:"
+  );
+  try {
+    await shell.run({
+      type: "spawn-command",
+      command: "docker",
+      args: ["compose", "-p", composeProjectName(branchHandle), "logs", "--tail", "40"],
+      workingDirectory: getRepoDeployPath({ branchHandle, rootDirectory }),
+    });
+  } catch (error) { }
 }
 
 function sleep(ms: number): Promise<void> {
@@ -618,6 +691,30 @@ function dockerComposeUpCommand({
     // Compose v2.2.2 builds with BuildKit only when the docker CLI's
     // DOCKER_BUILDKIT is set. Plain progress keeps job logs line-based.
     env: { ...process.env, DOCKER_BUILDKIT: "1", BUILDKIT_PROGRESS: "plain" },
+  };
+}
+
+// Master's preview is the source the others copy their database from.
+const MASTER_HANDLE = "master";
+
+interface RestoreMasterDatabaseCommandOptions {
+  branchHandle: string;
+  rootDirectory?: string;
+}
+
+function restoreMasterDatabaseCommand({
+  branchHandle,
+  rootDirectory,
+}: RestoreMasterDatabaseCommandOptions): SpawnCommand {
+  return {
+    type: "spawn-command",
+    command: path.join(process.cwd(), "scripts", "restore-master-db.sh"),
+    args: [
+      composeProjectName(branchHandle),
+      MASTER_HANDLE,
+      `https://${MASTER_HANDLE}.${DEPLOY_DOMAIN}`,
+    ],
+    workingDirectory: getRepoDeployPath({ branchHandle, rootDirectory }),
   };
 }
 
