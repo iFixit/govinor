@@ -43,14 +43,19 @@ export const action: ActionFunction = async ({ request }) => {
 
 async function verifyGithubPayload(request: Request): Promise<GithubEvent> {
   const event = request.headers.get("X-GitHub-Event");
-  const payload = await request.json();
-  const signature = request.headers.get("X-Hub-Signature");
-  const generatedSignature = `sha1=${crypto
-    .createHmac("sha1", GITHUB_WEBHOOK_SECRET)
-    .update(JSON.stringify(payload))
-    .digest("hex")}`;
-  if (signature !== generatedSignature) {
+  // Sign the body exactly as received. Re-encoding parsed JSON doesn't always
+  // reproduce GitHub's bytes (escaped "/" or non-ASCII characters), so valid
+  // deliveries would fail verification.
+  const body = Buffer.from(await request.arrayBuffer());
+  const signature = request.headers.get("X-Hub-Signature-256");
+  if (signature == null || !isValidSignature(body, signature)) {
     throw json({ message: "Signature mismatch" }, 401);
+  }
+  let payload: unknown;
+  try {
+    payload = JSON.parse(body.toString("utf8"));
+  } catch {
+    throw json({ message: "Invalid JSON" }, 400);
   }
   const validation = GithubEventSchema.safeParse({ event, payload });
   if (!validation.success) {
@@ -58,6 +63,21 @@ async function verifyGithubPayload(request: Request): Promise<GithubEvent> {
   }
 
   return validation.data;
+}
+
+function isValidSignature(body: Buffer, signature: string) {
+  const expected = Buffer.from(
+    `sha256=${crypto
+      .createHmac("sha256", GITHUB_WEBHOOK_SECRET)
+      .update(body)
+      .digest("hex")}`
+  );
+  const received = Buffer.from(signature);
+  // timingSafeEqual throws on different lengths; the length isn't secret.
+  return (
+    received.length === expected.length &&
+    crypto.timingSafeEqual(received, expected)
+  );
 }
 
 const GithubEventSchema = z.union([
