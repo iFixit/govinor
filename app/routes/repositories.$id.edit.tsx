@@ -24,10 +24,12 @@ import {
   updateRepository,
   UpdateRepositoryInputSchema,
 } from "~/models/repository.server";
+import { requireAuthorization } from "~/lib/auth.server";
 
 export type Loader = typeof loader;
 
-export const loader = async ({ params }: LoaderFunctionArgs) => {
+export const loader = async ({ request, params }: LoaderFunctionArgs) => {
+  await requireAuthorization(request);
   invariant(params.id, "Expected a repository id");
   const repository = await findRepository({
     id: params.id,
@@ -44,6 +46,7 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request, params }: ActionFunctionArgs) => {
+  await requireAuthorization(request);
   invariant(params.id, "Expected a repository id");
   const formData = await request.formData();
   const input = Object.fromEntries(formData.entries());

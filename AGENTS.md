@@ -57,7 +57,7 @@ npm run deploy           # Build + migrate + restart systemd service
 
 - **Server-only files** use `.server.ts` suffix (Remix convention, never bundled to client)
 - **Validation** via Zod schemas in models (e.g., `CreateRepositoryInputSchema`)
-- **Auth** is HTTP Basic Auth checked in root loader via `requireAuthorization(request)`
+- **Auth** is HTTP Basic Auth. Every loader and action must start with `await requireAuthorization(request)`: Remix runs only the matched route's loader or action for data requests and form posts, so the check in the root loader doesn't cover them. The only exceptions are `/login` and the GitHub webhook, which checks its HMAC signature instead.
 - **Shell commands** use the `Shell` class (`app/lib/shell.server.ts`) which wraps `child_process` with composable Command/SpawnCommand/MacroCommand types
 - **Route breadcrumbs** exported via `handle.getBreadcrumbs()` from route modules
 - **Environment variables** validated with `invariant()` in `config/env.server.ts`

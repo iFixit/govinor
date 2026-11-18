@@ -23,10 +23,12 @@ import { BreadcrumbItem } from "~/lib/hooks/use-breadcrumbs";
 import { useClipboard } from "~/lib/hooks/use-copy-to-clipboard";
 import { commitSession, getSession } from "~/lib/session.server";
 import { deleteRepository, findRepository } from "~/models/repository.server";
+import { requireAuthorization } from "~/lib/auth.server";
 
 export type Loader = typeof loader;
 
-export let loader = async ({ params }: LoaderFunctionArgs) => {
+export let loader = async ({ request, params }: LoaderFunctionArgs) => {
+  await requireAuthorization(request);
   invariant(params.id, "Expected a repository id");
   const repository = await findRepository({
     id: params.id,
@@ -49,6 +51,7 @@ export let loader = async ({ params }: LoaderFunctionArgs) => {
 };
 
 export const action: ActionFunction = async ({ request, params }) => {
+  await requireAuthorization(request);
   invariant(params.id, "Expected a repository id");
   const deleteRepo = await deleteRepository({
     id: params.id,

@@ -1,3 +1,4 @@
+import { LoaderFunctionArgs } from "@remix-run/node";
 import { Link, useLoaderData } from "@remix-run/react";
 import dayjs from "dayjs";
 import { StatusIndicator } from "~/components/status-indicator";
@@ -7,10 +8,12 @@ import {
 } from "~/helpers/date-helpers";
 import { BreadcrumbItem } from "~/lib/hooks/use-breadcrumbs";
 import { DeploymentItem, findAllDeployments } from "~/models/deployment.server";
+import { requireAuthorization } from "~/lib/auth.server";
 
 export type Loader = typeof loader;
 
-export const loader = async () => {
+export const loader = async ({ request }: LoaderFunctionArgs) => {
+  await requireAuthorization(request);
   const deployments = await findAllDeployments({ limit: 100 });
   return {
     deployments,
