@@ -2,10 +2,14 @@
 -- any statement fails the branch database is left empty and Strapi seeds
 -- it from scratch as before. pg_dump empties search_path, hence `public.`.
 
--- Master's tokens and sessions stay on master. Strapi creates the usual
+-- API tokens come along: Next.js sends master's token with every content
+-- query, and Strapi rejects a token it doesn't know rather than answering
+-- as the public role. They still validate here because every deploy's
+-- .env, master's included, is a copy of the same .env.example, so
+-- API_TOKEN_SALT matches.
+-- Transfer tokens and sessions stay on master. Strapi creates the usual
 -- admin from ADMIN_PASS when admin_users is empty. Every created_by and
 -- updated_by foreign key is ON DELETE SET NULL.
-DELETE FROM public.strapi_api_tokens;
 DELETE FROM public.strapi_transfer_tokens;
 DELETE FROM public.strapi_sessions;
 DELETE FROM public.admin_users;
