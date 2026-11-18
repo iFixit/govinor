@@ -1,10 +1,33 @@
 import crypto from "crypto";
-import { faker } from "@faker-js/faker";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 const BRANCH_COUNT = 10;
+
+const BRANCH_PREFIXES = ["feature", "fix", "chore", "refactor"];
+const BRANCH_WORDS = [
+  "cart",
+  "checkout",
+  "search",
+  "guide",
+  "product",
+  "header",
+  "footer",
+  "banner",
+  "pricing",
+  "reviews",
+  "sitemap",
+  "strapi",
+];
+
+function pick<T>(items: T[]): T {
+  return items[crypto.randomInt(items.length)];
+}
+
+function randomBranchName() {
+  return `${pick(BRANCH_PREFIXES)}/${pick(BRANCH_WORDS)}-${pick(BRANCH_WORDS)}`;
+}
 
 function getBranchHandle(branchName: string) {
   return branchName.replace(/[^a-zA-Z0-9]/g, "-");
@@ -30,7 +53,7 @@ async function seed() {
   for (let i = 0; i < BRANCH_COUNT; i++) {
     let branchName: string;
     do {
-      branchName = faker.git.branch();
+      branchName = randomBranchName();
     } while (usedNames.has(branchName));
     usedNames.add(branchName);
 
