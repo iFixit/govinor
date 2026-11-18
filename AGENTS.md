@@ -64,7 +64,7 @@ npm run deploy           # Build + migrate + restart systemd service
 
 ## Preview data
 
-A new Strapi preview starts with an empty database. Govinor copies master.govinor's Postgres into it (`scripts/restore-master-db.sh` and `.sql`), and Strapi then skips its own seed because the database has content. The copy leaves out API and transfer tokens, sessions, admin users and registered Strapi users, and points disk-stored uploads at master.
+A new Strapi preview starts with an empty database. Govinor copies master.govinor's Postgres into it (`scripts/restore-master-db.sh` and `.sql`), and Strapi then skips its own seed because the database has content. The copy keeps API tokens, so master.govinor's tokens work on previews. It leaves out transfer tokens, sessions, admin users and registered Strapi users, and points disk-stored uploads at master.
 
 This is a shortcut for previews, not a replacement for Strapi's seed (the crawler in iFixit's `apps/strapi/src/plugins/addons/server/services/seed`):
 
