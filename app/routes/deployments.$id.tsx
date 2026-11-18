@@ -35,12 +35,14 @@ import { BreadcrumbItem } from "~/lib/hooks/use-breadcrumbs";
 import { commitSession, getSession } from "~/lib/session.server";
 import { Branch, findBranch } from "~/models/branch.server";
 import { Deployment, findDeployment } from "~/models/deployment.server";
+import { requireAuthorization } from "~/lib/auth.server";
 
 dayjs.extend(calendar);
 
 export type Loader = typeof loader;
 
-export let loader = async ({ params }: LoaderFunctionArgs) => {
+export let loader = async ({ request, params }: LoaderFunctionArgs) => {
+  await requireAuthorization(request);
   invariant(params.id, "Expected params.id");
 
   const deployment = await findDeployment(params.id);
@@ -65,6 +67,7 @@ enum ActionType {
 }
 
 export const action = async ({ request, params }: ActionFunctionArgs) => {
+  await requireAuthorization(request);
   invariant(params.id, "Expected params.id");
   const formData = await request.formData();
   const action = formData.get("_action");

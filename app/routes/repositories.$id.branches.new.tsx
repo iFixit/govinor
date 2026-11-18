@@ -21,10 +21,12 @@ import { BreadcrumbItem } from "~/lib/hooks/use-breadcrumbs";
 import { commitSession, getSession } from "~/lib/session.server";
 import { upsertBranch } from "~/models/branch.server";
 import { findRepository } from "~/models/repository.server";
+import { requireAuthorization } from "~/lib/auth.server";
 
 export type Loader = typeof loader;
 
-export const loader = async ({ params }: LoaderFunctionArgs) => {
+export const loader = async ({ request, params }: LoaderFunctionArgs) => {
+  await requireAuthorization(request);
   const repositoryId = params.id;
   invariant(repositoryId, "Expected a repository id");
   const repository = await findRepository({
@@ -43,6 +45,7 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request, params }: ActionFunctionArgs) => {
+  await requireAuthorization(request);
   const repositoryId = params.id;
   invariant(repositoryId, "Expected a repository id");
   const repository = await findRepository({

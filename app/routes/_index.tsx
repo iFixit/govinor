@@ -13,11 +13,13 @@ import {
 } from "~/models/branch.server";
 import { findAllDeployments } from "~/models/deployment.server";
 import { getSystemStats } from "~/models/system.server";
+import { requireAuthorization } from "~/lib/auth.server";
 
 export type Loader = typeof loader;
 export type LoaderData = ReturnType<typeof useLoaderData<Loader>>;
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
+  await requireAuthorization(request);
   const url = new URL(request.url);
   const sortParam = url.searchParams.get("sort");
   const sort: BranchSortField =

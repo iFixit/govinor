@@ -8,8 +8,10 @@ import {
   createRepository,
   CreateRepositoryInputSchema,
 } from "~/models/repository.server";
+import { requireAuthorization } from "~/lib/auth.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
+  await requireAuthorization(request);
   const formData = await request.formData();
   const input = Object.fromEntries(formData.entries());
   const validatedInput = CreateRepositoryInputSchema.safeParse(input);

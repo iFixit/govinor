@@ -28,6 +28,7 @@ import { useSWRData } from "~/lib/hooks";
 import { BreadcrumbItem } from "~/lib/hooks/use-breadcrumbs";
 import { JobProgressLogger, ProgressLog } from "~/lib/logger";
 import { commitSession, getSession } from "~/lib/session.server";
+import { requireAuthorization } from "~/lib/auth.server";
 
 dayjs.extend(calendar);
 
@@ -47,7 +48,8 @@ export interface DeleteJob {
   progress?: ProgressLog;
 }
 
-export let loader = async ({ params }: LoaderFunctionArgs) => {
+export let loader = async ({ request, params }: LoaderFunctionArgs) => {
+  await requireAuthorization(request);
   invariant(params.id, "Expected params.id");
 
   const job = await findDeleteDeploymentJob(params.id);
@@ -98,6 +100,7 @@ enum ActionType {
 }
 
 export const action = async ({ request, params }: ActionFunctionArgs) => {
+  await requireAuthorization(request);
   invariant(params.id, "Expected params.id");
   const formData = await request.formData();
   const action = formData.get("_action");

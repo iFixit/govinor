@@ -1,11 +1,14 @@
+import { LoaderFunctionArgs } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import { JobTableRow, JobTableRowItem } from "~/components/jobs/job-table-row";
 import { DeleteDeploymentJob } from "~/jobs/delete-deployment-job.server";
 import { BreadcrumbItem } from "~/lib/hooks/use-breadcrumbs";
+import { requireAuthorization } from "~/lib/auth.server";
 
 export type Loader = typeof loader;
 
-export const loader = async () => {
+export const loader = async ({ request }: LoaderFunctionArgs) => {
+  await requireAuthorization(request);
   const jobs = await findDeleteDeploymentJobs();
   return {
     jobs,

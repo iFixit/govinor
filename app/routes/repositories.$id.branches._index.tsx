@@ -17,6 +17,7 @@ import { PushJob } from "~/jobs/push-job.server";
 import { flashMessage } from "~/lib/flash";
 import { commitSession, getSession } from "~/lib/session.server";
 import { type BranchItem } from "~/models/branch.server";
+import { requireAuthorization } from "~/lib/auth.server";
 
 enum Intent {
   Redeploy = "redeploy",
@@ -24,6 +25,7 @@ enum Intent {
 }
 
 export const action = async ({ request }: ActionFunctionArgs) => {
+  await requireAuthorization(request);
   const formData = await request.formData();
   const intent = formData.get("intent");
   const session = await getSession(request.headers.get("Cookie"));
