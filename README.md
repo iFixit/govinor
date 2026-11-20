@@ -153,8 +153,9 @@ If Govinor runs out of memory, to scale it up follow the following steps:
 1. Stop the running EC2 instance and wait for it to stop (it can take a few minutes)
 2. Change the instance type appropriately
 3. Start the instance again and wait for it to start (it can take a few minutes)
-4. ssh into the ec2 instance (using the new machine IP)
-5. Initialize the Caddy config:
+4. Update the govinor DNS records to the new machine IP
+5. ssh into the ec2 instance (using the new machine IP)
+6. Initialize the Caddy config:
    ```sh
    cd ~/govinor
    ./scripts/init-caddy.sh
